@@ -286,6 +286,9 @@
   <script>
     let mainChartInstance = null; let doughnutChartInstance = null;
     let userData = null; let currentTheme = { bgColor: '#030712', fontFamily: "'Outfit', sans-serif", chartType: 'radar' };
+
+    // ── Backend URL (update this if backend changes) ──
+    const BACKEND_URL = 'https://progress-record-backend.onrender.com';
     
     const userEmail = localStorage.getItem("userEmail");
     if(!userEmail) { window.location.href = "index.html"; }
@@ -297,7 +300,7 @@
 
     async function loadData() {
       try {
-        const response = await fetch(`http://localhost:5000/data/${userEmail}`);
+        const response = await fetch(`${BACKEND_URL}/data/${userEmail}`);
         if(response.ok) {
           userData = await response.json();
           if(userData.themeSettings) { currentTheme = { ...currentTheme, ...userData.themeSettings }; applyThemeToDOM(currentTheme); }
@@ -450,7 +453,7 @@
       const btn = document.getElementById("inputModalSubmit"); btn.innerText = "Saving...";
       
       try {
-        let url = "http://localhost:5000/";
+        let url = `${BACKEND_URL}/`;
         let body = { email: userEmail, ...modalConfig };
 
         if(modalConfig.action === 'edit') {
@@ -471,13 +474,13 @@
     }
 
     async function toggleTask(subjectId, topicId, subtopicId, taskId) {
-      await fetch("http://localhost:5000/toggle-task", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: userEmail, subjectId, topicId, subtopicId, taskId }) });
+      await fetch(`${BACKEND_URL}/toggle-task`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: userEmail, subjectId, topicId, subtopicId, taskId }) });
       loadData();
     }
 
     async function deleteItem(route, subId, topId=null, subtopId=null, taskId=null) {
       if(!confirm("Permanently delete this item?")) return;
-      let url = `http://localhost:5000/${route}/${userEmail}/${subId}`;
+      let url = `${BACKEND_URL}/${route}/${userEmail}/${subId}`;
       if(topId) url += `/${topId}`; if(subtopId) url += `/${subtopId}`; if(taskId) url += `/${taskId}`;
       await fetch(url, { method: "DELETE" });
       loadData();
@@ -502,7 +505,7 @@
       tempTheme.chartType = document.getElementById("chartTypeSelect").value;
       const btn = document.querySelector("#settingsModal .btn-small"); btn.innerText = "Saving...";
       try {
-        await fetch("http://localhost:5000/update-settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: userEmail, ...tempTheme }) });
+        await fetch(`${BACKEND_URL}/update-settings`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: userEmail, ...tempTheme }) });
         currentTheme = { ...tempTheme }; applyThemeToDOM(currentTheme); loadData();
       } catch(err) { alert("Error saving settings."); }
       finally { btn.innerText = "Save & Apply"; closeModals(); }

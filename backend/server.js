@@ -10,7 +10,29 @@ const Goal    = require("./models/Goal");
 const Session = require("./models/Session");
 
 const app = express();
-app.use(cors());
+
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://progress-record-backend.onrender.com',
+  // Add your Vercel URL here once deployed, e.g.:
+  // 'https://progress-record.vercel.app',
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Render health checks)
+    if (!origin) return callback(null, true);
+    // Allow any *.vercel.app preview URL
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.options('*', cors()); // Pre-flight for all routes
 app.use(express.json());
 
 /* ── DB ── */
