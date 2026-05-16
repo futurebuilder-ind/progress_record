@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -109,6 +109,17 @@ export default function Login() {
             <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Create one free →</Link>
           </p>
         </div>
+
+        {/* Developer Credit */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="text-center text-slate-600 text-xs mt-6"
+        >
+          Developed by{' '}
+          <span className="text-blue-500/70 font-semibold">Avee Ranjan</span>
+        </motion.p>
       </motion.div>
     </div>
   );

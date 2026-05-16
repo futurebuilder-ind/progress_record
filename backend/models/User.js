@@ -44,6 +44,8 @@ const UserSchema = new mongoose.Schema({
                         {
                             name: String,
                             completed: { type: Boolean, default: false },
+                            deadline: { type: Date },
+                            comment:  { type: String, default: '' },
                             tasks: [
                                 {
                                     name: String,

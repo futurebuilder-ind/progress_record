@@ -168,6 +168,11 @@ export default function Dashboard() {
           </p>
         </div>
       </motion.div>
+      {/* Developer Credit */}
+      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+        className="text-center text-slate-700 text-xs pt-4 border-t border-white/5">
+        Developed by <span className="text-blue-600/60 font-semibold">Avee Ranjan</span>
+      </motion.p>
     </div>
   );
 }

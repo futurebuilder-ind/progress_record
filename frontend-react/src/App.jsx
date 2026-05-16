@@ -12,6 +12,7 @@ import Goals from './pages/Goals';
 import Leaderboard from './pages/Leaderboard';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
+import Feedback from './pages/Feedback';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -42,23 +43,25 @@ function App() {
           toastOptions={{
             style: { background: '#0f172a', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.1)' },
             success: { iconTheme: { primary: '#22d3ee', secondary: '#030712' } },
-            error: { iconTheme: { primary: '#f87171', secondary: '#030712' } },
+            error:   { iconTheme: { primary: '#f87171', secondary: '#030712' } },
           }}
         />
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/login"  element={<PublicRoute><Login  /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="subjects" element={<Subjects />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="pomodoro" element={<Pomodoro />} />
-            <Route path="notes" element={<Notes />} />
-            <Route path="goals" element={<Goals />} />
+            <Route path="dashboard"  element={<Dashboard  />} />
+            <Route path="subjects"   element={<Subjects   />} />
+            <Route path="analytics"  element={<Analytics  />} />
+            <Route path="pomodoro"   element={<Pomodoro   />} />
+            <Route path="notes"      element={<Notes      />} />
+            <Route path="goals"      element={<Goals      />} />
             <Route path="leaderboard" element={<Leaderboard />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="settings"   element={<Settings   />} />
+            <Route path="feedback"   element={<Feedback   />} />
           </Route>
+          <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -1,16 +1,26 @@
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Shield, Bell, Palette, Eye, EyeOff, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
+import API from '../api/axios';
 
 const EXAM_TYPES = ['GATE', 'JEE', 'NEET', 'UPSC', 'SSC', 'CAT', 'GMAT', 'Board Exams', 'Other'];
-const THEMES = [
-  { name: 'Midnight', bg: '#030712', accent: '#3b82f6' },
+
+export const THEMES = [
+  { name: 'Midnight',   bg: '#030712', accent: '#3b82f6' },
   { name: 'Deep Space', bg: '#0d0d1a', accent: '#8b5cf6' },
-  { name: 'Forest', bg: '#022c22', accent: '#10b981' },
-  { name: 'Crimson', bg: '#1a0008', accent: '#ef4444' },
+  { name: 'Forest',     bg: '#022c22', accent: '#10b981' },
+  { name: 'Crimson',    bg: '#1a0008', accent: '#ef4444' },
 ];
+
+/* Apply theme to document — call this whenever theme changes */
+export function applyTheme(theme) {
+  if (!theme) return;
+  document.body.style.background = theme.bg;
+  document.documentElement.style.setProperty('--bg-primary', theme.bg);
+  localStorage.setItem('selectedTheme', JSON.stringify(theme));
+}
 
 function Section({ title, icon: Icon, children }) {
   return (
@@ -25,14 +35,52 @@ function Section({ title, icon: Icon, children }) {
 
 export default function Settings() {
   const { user } = useAuth();
-  const [name, setName] = useState(user?.name || '');
+  const [name,     setName]     = useState(user?.name || '');
   const [examType, setExamType] = useState(user?.examType || 'GATE');
-  const [oldPass, setOldPass] = useState('');
-  const [newPass, setNewPass] = useState('');
+  const [oldPass,  setOldPass]  = useState('');
+  const [newPass,  setNewPass]  = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState(0);
+  const [savingProfile, setSavingProfile] = useState(false);
 
-  const saveProfile = () => toast.success('Profile saved!');
+  const [selectedTheme, setSelectedTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('selectedTheme');
+      if (saved) {
+        const t = JSON.parse(saved);
+        return THEMES.findIndex(th => th.bg === t.bg) ?? 0;
+      }
+    } catch {}
+    return 0;
+  });
+
+  /* Apply saved theme on mount */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('selectedTheme');
+      if (saved) applyTheme(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const handleThemeChange = async (theme, i) => {
+    setSelectedTheme(i);
+    applyTheme(theme);
+    try {
+      await API.put('/settings', { bgColor: theme.bg, accentColor: theme.accent });
+      toast.success(`${theme.name} theme saved!`);
+    } catch {
+      toast.error('Theme saved locally, but failed to sync to server');
+    }
+  };
+
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      await API.put('/settings', { displayName: name, examType });
+      toast.success('Profile updated!');
+    } catch { toast.error('Failed to save profile'); }
+    finally { setSavingProfile(false); }
+  };
+
   const savePassword = () => { setOldPass(''); setNewPass(''); toast.success('Password updated!'); };
 
   return (
@@ -49,9 +97,6 @@ export default function Settings() {
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black text-3xl">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
-            <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center text-white hover:bg-blue-600 transition-all">
-              <User size={12}/>
-            </button>
           </div>
           <div>
             <div className="text-white font-bold text-lg">{user?.name}</div>
@@ -72,8 +117,10 @@ export default function Settings() {
               {EXAM_TYPES.map(e => <option key={e} value={e} className="bg-slate-900">{e}</option>)}
             </select>
           </div>
-          <button onClick={saveProfile} className="btn-neon w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2">
-            <Save size={16}/> Save Profile
+          <button onClick={saveProfile} disabled={savingProfile}
+            className="btn-neon w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+            {savingProfile ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <Save size={16}/>}
+            Save Profile
           </button>
         </div>
       </Section>
@@ -106,13 +153,16 @@ export default function Settings() {
 
       {/* Theme */}
       <Section title="Appearance" icon={Palette}>
+        <p className="text-slate-500 text-xs mb-4">Choose a background theme. Changes apply instantly and persist after refresh.</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {THEMES.map((theme, i) => (
-            <motion.button key={theme.name} whileTap={{ scale: 0.95 }} onClick={() => { setSelectedTheme(i); toast.success(`${theme.name} theme applied!`); }}
-              className={`p-4 rounded-xl border-2 transition-all ${selectedTheme === i ? 'border-blue-500' : 'border-white/10 hover:border-white/20'}`}
+            <motion.button key={theme.name} whileTap={{ scale: 0.95 }}
+              onClick={() => handleThemeChange(theme, i)}
+              className={`p-4 rounded-xl border-2 transition-all ${selectedTheme === i ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-white/10 hover:border-white/20'}`}
               style={{ background: theme.bg }}>
               <div className="w-6 h-6 rounded-full mx-auto mb-2" style={{ background: theme.accent, boxShadow: `0 0 10px ${theme.accent}` }}/>
               <div className="text-white text-xs font-semibold">{theme.name}</div>
+              {selectedTheme === i && <div className="text-blue-400 text-xs mt-1">✓ Active</div>}
             </motion.button>
           ))}
         </div>
@@ -121,9 +171,9 @@ export default function Settings() {
       {/* Notifications */}
       <Section title="Notifications" icon={Bell}>
         {[
-          { label: 'Revision Reminders', desc: 'Get reminded about topics you haven\'t reviewed' },
-          { label: 'Daily Study Goal', desc: 'Alert when you haven\'t studied today' },
-          { label: 'Streak Alerts', desc: 'Notify before your streak breaks' },
+          { label: 'Revision Reminders', desc: "Get reminded about topics you haven't reviewed" },
+          { label: 'Daily Study Goal',   desc: "Alert when you haven't studied today" },
+          { label: 'Streak Alerts',      desc: 'Notify before your streak breaks' },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
             <div>

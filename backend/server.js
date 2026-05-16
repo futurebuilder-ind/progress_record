@@ -5,9 +5,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const User    = require("./models/User");
-const Goal    = require("./models/Goal");
-const Session = require("./models/Session");
+const User     = require("./models/User");
+const Goal     = require("./models/Goal");
+const Session  = require("./models/Session");
+const Feedback = require("./models/Feedback");
+const Note     = require("./models/Note");
 
 const app = express();
 
@@ -15,15 +17,11 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://progress-record-backend.onrender.com',
-  // Add your Vercel URL here once deployed, e.g.:
-  // 'https://progress-record.vercel.app',
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Render health checks)
     if (!origin) return callback(null, true);
-    // Allow any *.vercel.app preview URL
     if (origin.endsWith('.vercel.app')) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     callback(new Error(`CORS blocked: ${origin}`));
@@ -32,13 +30,15 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.options('*', cors()); // Pre-flight for all routes
+app.options('*', cors());
 app.use(express.json());
 
 /* ── DB ── */
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.error(err));
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB Error:", err));
+
+mongoose.connection.on('error', err => console.error('MongoDB runtime error:', err));
 
 /* ── JWT MIDDLEWARE ── */
 const auth = (req, res, next) => {
@@ -56,11 +56,12 @@ const auth = (req, res, next) => {
 app.post("/auth/signup", async (req, res) => {
   try {
     const { name, email, password, examType } = req.body;
+    if (!name?.trim() || !email?.trim() || !password) return res.status(400).json({ message: "All fields required" });
     const exists = await User.findOne({ email: email.trim().toLowerCase() });
     if (exists) return res.status(400).json({ message: "Email already registered" });
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email: email.trim().toLowerCase(), password: hashed, exam: examType || "Other" });
+    const user = await User.create({ name: name.trim(), email: email.trim().toLowerCase(), password: hashed, exam: examType || "Other" });
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || "progress_secret_key", { expiresIn: "30d" });
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, examType: user.exam } });
@@ -70,6 +71,7 @@ app.post("/auth/signup", async (req, res) => {
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
     const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -84,8 +86,6 @@ app.post("/auth/login", async (req, res) => {
 /* ════════════════════════════════
    SUBJECTS  (JWT protected)
 ════════════════════════════════ */
-
-// GET
 app.get("/subjects", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).lean();
@@ -94,7 +94,6 @@ app.get("/subjects", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// CREATE subject
 app.post("/subjects", auth, async (req, res) => {
   try {
     const { subjectName } = req.body;
@@ -106,7 +105,6 @@ app.post("/subjects", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// RENAME subject
 app.patch("/subjects/:subjectId", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -118,7 +116,6 @@ app.patch("/subjects/:subjectId", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// DELETE subject
 app.delete("/subjects/:subjectId", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -157,7 +154,6 @@ app.patch("/subjects/:subjectId/topics/:topicId", auth, async (req, res) => {
     if (req.body.deadline !== undefined) topic.deadline = req.body.deadline ? new Date(req.body.deadline) : null;
     if (req.body.completed !== undefined) {
       topic.completed = req.body.completed;
-      // Track when a topic is first marked complete (for trend charts)
       if (req.body.completed && !topic.completedAt) {
         topic.completedAt = new Date();
       } else if (!req.body.completed) {
@@ -192,14 +188,18 @@ app.post("/subjects/:subjectId/topics/:topicId/subtopics", auth, async (req, res
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+/* PATCH subtopic — now supports name, completed, deadline, comment */
 app.patch("/subjects/:subjectId/topics/:topicId/subtopics/:subtopicId", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     const sub = user.subjects.id(req.params.subjectId)
                              .topics.id(req.params.topicId)
                              .subtopics.id(req.params.subtopicId);
-    if (req.body.name !== undefined) sub.name = req.body.name.trim();
-    if (req.body.completed !== undefined) sub.completed = req.body.completed;
+    if (!sub) return res.status(404).json({ message: "Subtopic not found" });
+    if (req.body.name      !== undefined) sub.name      = req.body.name.trim();
+    if (req.body.completed !== undefined) sub.completed  = req.body.completed;
+    if (req.body.deadline  !== undefined) sub.deadline   = req.body.deadline ? new Date(req.body.deadline) : null;
+    if (req.body.comment   !== undefined) sub.comment    = req.body.comment;
     await user.save();
     res.json({ subjects: user.subjects });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -238,12 +238,10 @@ app.patch("/subjects/:subjectId/topics/:topicId/subtopics/:subtopicId/tasks/:tas
     const task = subtopic.tasks.id(taskId);
     task.completed = !task.completed;
 
-    // Auto-complete subtopic when all tasks done
     if (subtopic.tasks.length > 0) {
       subtopic.completed = subtopic.tasks.every(t => t.completed);
     }
 
-    // Auto-complete topic when all subtopics done
     const topic = user.subjects.id(subjectId).topics.id(topicId);
     if (topic.subtopics.length > 0) {
       const allSubtopicsDone = topic.subtopics.every(s => s.completed);
@@ -303,18 +301,17 @@ app.patch("/goals/:id", auth, async (req, res) => {
     if (!goal) return res.status(404).json({ message: "Goal not found" });
 
     const { title, category, target, deadline, delta, current, completed } = req.body;
-    if (title !== undefined) goal.title = title.trim();
-    if (category !== undefined) goal.category = category;
-    if (target !== undefined) goal.target = Math.max(1, Number(target));
-    if (deadline !== undefined) goal.deadline = deadline ? new Date(deadline) : null;
-    if (delta !== undefined) goal.current = Math.max(0, Math.min(goal.target, goal.current + Number(delta)));
-    if (current !== undefined) goal.current = Math.max(0, Math.min(goal.target, Number(current)));
+    if (title     !== undefined) goal.title    = title.trim();
+    if (category  !== undefined) goal.category = category;
+    if (target    !== undefined) goal.target   = Math.max(1, Number(target));
+    if (deadline  !== undefined) goal.deadline = deadline ? new Date(deadline) : null;
+    if (delta     !== undefined) goal.current  = Math.max(0, Math.min(goal.target, goal.current + Number(delta)));
+    if (current   !== undefined) goal.current  = Math.max(0, Math.min(goal.target, Number(current)));
     if (completed !== undefined) {
       goal.completed = completed;
       if (completed) { goal.current = goal.target; goal.completedAt = new Date(); }
     }
 
-    // Auto-complete when target reached
     if (goal.current >= goal.target && !goal.completed) {
       goal.completed = true;
       goal.completedAt = new Date();
@@ -361,6 +358,85 @@ app.get("/sessions/stats", auth, async (req, res) => {
 });
 
 /* ════════════════════════════════
+   NOTES VAULT (text-based, MongoDB)
+════════════════════════════════ */
+app.get("/notes", auth, async (req, res) => {
+  try {
+    const notes = await Note.find({ userId: req.user.id }).sort({ pinned: -1, updatedAt: -1 });
+    res.json({ notes });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+app.post("/notes", auth, async (req, res) => {
+  try {
+    const { title, body, tags, color } = req.body;
+    if (!title?.trim()) return res.status(400).json({ message: "Title required" });
+    const note = await Note.create({
+      userId: req.user.id,
+      title: title.trim(),
+      body: body || '',
+      tags: tags || [],
+      color: color || '#1e293b',
+    });
+    res.status(201).json({ note });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+app.patch("/notes/:id", auth, async (req, res) => {
+  try {
+    const note = await Note.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!note) return res.status(404).json({ message: "Note not found" });
+    const { title, body, tags, color, pinned } = req.body;
+    if (title  !== undefined) note.title  = title.trim();
+    if (body   !== undefined) note.body   = body;
+    if (tags   !== undefined) note.tags   = tags;
+    if (color  !== undefined) note.color  = color;
+    if (pinned !== undefined) note.pinned = pinned;
+    await note.save();
+    res.json({ note });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+app.delete("/notes/:id", auth, async (req, res) => {
+  try {
+    await Note.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+    res.json({ message: "Deleted" });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* ════════════════════════════════
+   FEEDBACK
+════════════════════════════════ */
+/* Submit feedback (authenticated users) */
+app.post("/feedback", auth, async (req, res) => {
+  try {
+    const { message, rating } = req.body;
+    if (!message?.trim()) return res.status(400).json({ message: "Message required" });
+    const user = await User.findById(req.user.id).lean();
+    const fb = await Feedback.create({
+      userId:  req.user.id,
+      name:    user.name,
+      email:   user.email,
+      message: message.trim(),
+      rating:  rating || 5,
+    });
+    res.status(201).json({ feedback: fb });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* View all feedback (admin: no auth guard for simplicity, guarded by secret header) */
+app.get("/feedback", async (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== (process.env.ADMIN_KEY || 'avee_admin_2026')) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const feedbacks = await Feedback.find().sort({ createdAt: -1 });
+    res.json({ feedbacks });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* ════════════════════════════════
    ANALYTICS (Real Data)
 ════════════════════════════════ */
 app.get("/analytics", auth, async (req, res) => {
@@ -368,7 +444,6 @@ app.get("/analytics", auth, async (req, res) => {
     const userId = req.user.id;
     const user = await User.findById(userId).lean();
 
-    // --- Subject stats ---
     let totalTopics = 0, completedTopics = 0, totalTasks = 0, completedTasks = 0;
     const subjectMastery = [];
 
@@ -379,11 +454,9 @@ app.get("/analytics", auth, async (req, res) => {
         const subtopics = t.subtopics || [];
 
         if (subtopics.length === 0) {
-          // Topic with no subtopics: use its completed flag directly
           subTotalWeight++;
           if (t.completed) { completedTopics++; subCompletedWeight++; }
         } else {
-          // Topic has subtopics: aggregate from subtopics
           let topicWeight = 0, topicDone = 0;
           subtopics.forEach(st => {
             const tasks = st.tasks || [];
@@ -410,19 +483,16 @@ app.get("/analytics", auth, async (req, res) => {
       subjectMastery.push({ name: sub.name, mastery });
     });
 
-    // --- Goals ---
     const goals = await Goal.find({ userId }).lean();
     const completedGoals = goals.filter(g => g.completed).length;
     const avgGoalPct = goals.length > 0
       ? Math.round(goals.reduce((acc, g) => acc + Math.min(100, (g.current / Math.max(1, g.target)) * 100), 0) / goals.length)
       : 0;
 
-    // --- Sessions ---
     const sessions = await Session.find({ userId }).lean();
     const focusSessions = sessions.filter(s => s.type === 'focus');
     const totalFocusMinutes = focusSessions.reduce((a, s) => a + s.durationMinutes, 0);
 
-    // Last 7 days focus hours
     const last7 = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
@@ -435,7 +505,6 @@ app.get("/analytics", auth, async (req, res) => {
       last7.push({ day: dayStr, hours: Math.round((mins / 60) * 10) / 10 });
     }
 
-    // Topics completed per day (last 7 days) — completion trend
     const completionTrend = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
@@ -445,15 +514,12 @@ app.get("/analytics", auth, async (req, res) => {
       let count = 0;
       (user.subjects || []).forEach(sub => {
         (sub.topics || []).forEach(t => {
-          if (t.completedAt && new Date(t.completedAt) >= dayStart && new Date(t.completedAt) < dayEnd) {
-            count++;
-          }
+          if (t.completedAt && new Date(t.completedAt) >= dayStart && new Date(t.completedAt) < dayEnd) count++;
         });
       });
       completionTrend.push({ day: dayStr, topics: count });
     }
 
-    // Today's sessions
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const todayFocus = focusSessions.filter(s => new Date(s.date) >= todayStart);
 
@@ -461,11 +527,7 @@ app.get("/analytics", auth, async (req, res) => {
       ? Math.round(subjectMastery.reduce((a, s) => a + s.mastery, 0) / subjectMastery.length)
       : 0;
     const consistency = focusSessions.length > 0 ? Math.min(100, Math.round((focusSessions.length / 14) * 100)) : 0;
-
-    // Productivity score: weighted blend
-    const productivityScore = Math.round(
-      consistency * 0.4 + overallMastery * 0.4 + avgGoalPct * 0.2
-    );
+    const productivityScore = Math.round(consistency * 0.4 + overallMastery * 0.4 + avgGoalPct * 0.2);
 
     res.json({
       overallMastery,
@@ -484,7 +546,7 @@ app.get("/analytics", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-/* ── Settings ── */
+/* ── Settings (Theme) ── */
 app.put("/settings", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -494,6 +556,9 @@ app.put("/settings", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+/* ── Health check ── */
+app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+
 app.listen(process.env.PORT || 5000, () =>
-  console.log(`Server running on port ${process.env.PORT || 5000}`)
+  console.log(`🚀 Server running on port ${process.env.PORT || 5000}`)
 );

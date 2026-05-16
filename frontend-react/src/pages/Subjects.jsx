@@ -141,10 +141,14 @@ function TaskRow({ task, subjectId, topicId, subtopicId, onUpdate }) {
 
 /* ─── Subtopic ─── */
 function SubtopicCard({ subtopic, subjectId, topicId, onUpdate }) {
-  const [open, setOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [open,       setOpen]       = useState(false);
+  const [adding,     setAdding]     = useState(false);
+  const [editMeta,   setEditMeta]   = useState(false);
+  const [deadline,   setDeadline]   = useState(subtopic.deadline ? subtopic.deadline.split('T')[0] : '');
+  const [comment,    setComment]    = useState(subtopic.comment || '');
+  const [savingMeta, setSavingMeta] = useState(false);
   const tasks = subtopic.tasks || [];
-  const done = tasks.filter(t => t.completed).length;
+  const done  = tasks.filter(t => t.completed).length;
 
   const addTask = async (name) => {
     try {
@@ -167,6 +171,19 @@ function SubtopicCard({ subtopic, subjectId, topicId, onUpdate }) {
     } catch { toast.error('Failed'); }
   };
 
+  const saveMeta = async () => {
+    setSavingMeta(true);
+    try {
+      const { data } = await API.patch(`/subjects/${subjectId}/topics/${topicId}/subtopics/${subtopic._id}`, {
+        deadline: deadline || null,
+        comment:  comment,
+      });
+      toast.success('Saved!'); onUpdate(data.subjects); setEditMeta(false);
+    } catch { toast.error('Failed to save'); } finally { setSavingMeta(false); }
+  };
+
+  const daysLeft = deadline ? daysLeftFromDate(parseDateLocal(deadline)) : null;
+
   return (
     <div className="rounded-xl border border-white/5 bg-white/2 mb-2 overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2.5 group cursor-pointer" onClick={() => setOpen(!open)}>
@@ -176,16 +193,51 @@ function SubtopicCard({ subtopic, subjectId, topicId, onUpdate }) {
         </button>
         {open ? <ChevronDown size={13} className="text-slate-500" /> : <ChevronRight size={13} className="text-slate-500" />}
         <span className={`text-sm font-semibold flex-1 ${subtopic.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}>{subtopic.name}</span>
+        {daysLeft !== null && (
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${daysLeft < 0 ? 'bg-red-500/20 text-red-400' : daysLeft <= 3 ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
+            {daysLeft < 0 ? 'Overdue' : `${daysLeft}d`}
+          </span>
+        )}
         {tasks.length > 0 && <span className="text-xs text-slate-500">{done}/{tasks.length}</span>}
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={e => { e.stopPropagation(); setEditMeta(v => !v); }} className="p-1 rounded text-slate-400 hover:text-purple-400" title="Date & Comment"><Calendar size={12} /></button>
           <button onClick={e => { e.stopPropagation(); setAdding(true); }} className="p-1 rounded text-slate-400 hover:text-blue-400"><Plus size={12} /></button>
           <button onClick={e => { e.stopPropagation(); del(); }} className="p-1 rounded text-slate-400 hover:text-red-400"><Trash2 size={12} /></button>
         </div>
       </div>
+
+      {/* Date + Comment editor */}
+      <AnimatePresence>
+        {editMeta && (
+          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+            <div className="px-3 pb-3 pl-10 border-t border-purple-500/20 bg-purple-500/5 space-y-2">
+              <div className="pt-2">
+                <label className="text-xs text-slate-500 mb-1 block">Target Date</label>
+                <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)}
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:outline-none focus:border-purple-500 transition-all [color-scheme:dark]"/>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Comment / Notes</label>
+                <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2}
+                  placeholder="Add a comment..."
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:outline-none focus:border-purple-500 transition-all resize-none placeholder-slate-600"/>
+              </div>
+              <button onClick={saveMeta} disabled={savingMeta}
+                className="px-3 py-1.5 rounded-lg btn-neon text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-60">
+                {savingMeta ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"/> : <Save size={11}/>} Save
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {open && (
           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
             <div className="px-3 pb-3 pl-10 border-t border-white/5">
+              {subtopic.comment && (
+                <p className="text-xs text-slate-500 italic py-1.5 border-b border-white/5 mb-2">💬 {subtopic.comment}</p>
+              )}
               {tasks.map(task => (
                 <TaskRow key={task._id} task={task} subjectId={subjectId} topicId={topicId} subtopicId={subtopic._id} onUpdate={onUpdate} />
               ))}
