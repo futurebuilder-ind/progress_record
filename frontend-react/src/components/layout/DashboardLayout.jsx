@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, BookOpen, BarChart3, Timer, FileText,
-  Target, Trophy, Settings, LogOut, Brain, Menu, X, ChevronRight, MessageSquare
+  Target, Trophy, Settings, LogOut, Brain, Menu, X, ChevronRight, MessageSquare, ShieldCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { applyTheme } from '../../pages/Settings';
@@ -18,6 +18,7 @@ const navItems = [
   { to: '/goals',       icon: Target,           label: 'Goals'      },
   { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard'},
   { to: '/feedback',    icon: MessageSquare,    label: 'Feedback'   },
+  { to: '/feedback-admin', icon: ShieldCheck,    label: 'Admin Panel' },
   { to: '/settings',    icon: Settings,         label: 'Settings'   },
 ];
 

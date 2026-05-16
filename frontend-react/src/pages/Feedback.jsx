@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { MessageSquare, Star, Send, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { MessageSquare, Star, Send, CheckCircle, Mail, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import API from '../api/axios';
@@ -97,7 +97,7 @@ export default function Feedback() {
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
               Your Message <span className="normal-case text-slate-600">(required)</span>
             </label>
-            <textarea value={message} onChange={e => setMessage(e.target.value)} rows={6}
+            <textarea value={message} onChange={e => setMessage(e.target.value)} rows={5}
               placeholder="Share your experience, report a bug, or suggest a feature..."
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all resize-none text-sm leading-relaxed"/>
             <p className="text-slate-600 text-xs mt-1.5 text-right">{message.length} characters</p>
@@ -113,8 +113,32 @@ export default function Feedback() {
         </form>
       </motion.div>
 
+      {/* Developer Contact Card */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        className="glass rounded-2xl p-6 border border-white/5 cyber-card">
+        <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
+          <User size={16} className="text-purple-400" /> Developer Contact
+        </h3>
+        <div className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/20">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
+            <span className="text-white font-black text-lg">A</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-bold text-sm">Avee Ranjan</p>
+            <p className="text-slate-500 text-xs mt-0.5">Lead Developer · Progress Record</p>
+          </div>
+          <a href="mailto:aveenranjan984@gmail.com"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-all flex-shrink-0">
+            <Mail size={14} /> Email
+          </a>
+        </div>
+        <p className="text-slate-500 text-xs mt-3 ml-1">
+          📧 <a href="mailto:aveenranjan984@gmail.com" className="text-blue-400 hover:text-blue-300 transition-colors">aveenranjan984@gmail.com</a>
+        </p>
+      </motion.div>
+
       {/* Info card */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
         className="glass rounded-2xl p-5 border border-white/5">
         <div className="flex items-start gap-3">
           <MessageSquare size={18} className="text-blue-400 mt-0.5 flex-shrink-0"/>

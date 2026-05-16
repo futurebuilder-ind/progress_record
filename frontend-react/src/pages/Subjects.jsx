@@ -71,32 +71,39 @@ function Modal({ title, onClose, onSave, defaultValue = '', showDate = false, sh
   const submit = () => val.trim() && onSave(val.trim(), date || null, notes);
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4"
+      style={{ zIndex: 9999 }}
       onClick={onClose}>
       <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9 }}
         onClick={e => e.stopPropagation()}
-        className="glass rounded-2xl p-7 w-full max-w-md border border-white/10 shadow-2xl">
-        <div className="flex justify-between items-center mb-5">
+        className="glass rounded-2xl w-full max-w-md border border-white/10 shadow-2xl flex flex-col"
+        style={{ maxHeight: '85vh' }}>
+        {/* Header — fixed */}
+        <div className="flex justify-between items-center p-7 pb-4 flex-shrink-0">
           <h3 className="text-white font-bold text-xl">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"><X size={18} /></button>
         </div>
-        <input autoFocus value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="Enter name..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mb-3" />
-        {showDate && (
-          <div className="mb-3">
-            <label className="text-xs text-slate-400 uppercase tracking-wider mb-1.5 block">Target Deadline <span className="normal-case text-slate-600">(optional)</span></label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all [color-scheme:dark]" />
-          </div>
-        )}
-        {showNotes && (
-          <div className="mb-3">
-            <label className="text-xs text-slate-400 uppercase tracking-wider mb-1.5 block">Notes <span className="normal-case text-slate-600">(optional)</span></label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              placeholder="Add notes..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all resize-none" />
-          </div>
-        )}
-        <div className="flex gap-3 mt-4">
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-7 pb-2" style={{ minHeight: 0 }}>
+          <input autoFocus value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()}
+            placeholder="Enter name..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mb-3" />
+          {showDate && (
+            <div className="mb-3">
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-1.5 block">Target Deadline <span className="normal-case text-slate-600">(optional)</span></label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all [color-scheme:dark]" />
+            </div>
+          )}
+          {showNotes && (
+            <div className="mb-3">
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-1.5 block">Notes <span className="normal-case text-slate-600">(optional)</span></label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                placeholder="Add notes..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all resize-none" />
+            </div>
+          )}
+        </div>
+        {/* Footer — always visible */}
+        <div className="flex gap-3 p-7 pt-4 border-t border-white/5 flex-shrink-0">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-white/5 text-slate-300 font-semibold hover:bg-white/10 transition-all">Cancel</button>
           <button onClick={submit} className="flex-1 py-2.5 btn-neon rounded-xl text-white font-semibold flex items-center justify-center gap-2">
             <Save size={15} /> Save
@@ -411,7 +418,7 @@ function SubjectCard({ subject, onUpdate }) {
             </div>
           </div>
           <div className="flex gap-1.5 flex-shrink-0 items-center">
-            <button onClick={e => { e.stopPropagation(); setEditing(true); }} className="p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 transition-all"><Edit2 size={14} /></button>
+            <button onClick={e => { e.stopPropagation(); setAddingTopic(false); setEditing(true); }} className="p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 transition-all"><Edit2 size={14} /></button>
             <button onClick={del}
               className={`px-2 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 confirmDelete
@@ -442,7 +449,7 @@ function SubjectCard({ subject, onUpdate }) {
             <div className="px-5 pb-5 border-t border-white/5 pt-4">
               {topics.map(t => <TopicCard key={t._id} topic={t} subjectId={subject._id} onUpdate={onUpdate} />)}
               {topics.length === 0 && <p className="text-slate-500 text-sm mb-3">No topics yet. Add your first one!</p>}
-              <button onClick={() => setAddingTopic(true)}
+              <button onClick={() => { setEditing(false); setAddingTopic(true); }}
                 className="w-full py-2.5 border border-dashed border-blue-500/40 rounded-xl text-blue-400 text-sm font-semibold hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2">
                 <Plus size={14} /> Add Topic with Deadline
               </button>

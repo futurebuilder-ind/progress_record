@@ -1,6 +1,5 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
 
 :root {
   --neon-blue: #00d4ff;
@@ -13,10 +12,16 @@
 
 * { box-sizing: border-box; }
 
+html {
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
 body {
   background: var(--bg-dark);
   font-family: 'Outfit', sans-serif;
   overflow-x: hidden;
+  min-height: 100%;
 }
 
 /* Custom Scrollbar */

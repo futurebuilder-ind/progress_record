@@ -13,6 +13,7 @@ import Leaderboard from './pages/Leaderboard';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
 import Feedback from './pages/Feedback';
+import FeedbackDashboard from './pages/FeedbackDashboard';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -60,6 +61,7 @@ function App() {
             <Route path="leaderboard" element={<Leaderboard />} />
             <Route path="settings"   element={<Settings   />} />
             <Route path="feedback"   element={<Feedback   />} />
+            <Route path="feedback-admin" element={<FeedbackDashboard />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
