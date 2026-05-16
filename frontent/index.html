@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Progress Record</title>
+
+  <!-- GOOGLE FONT -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --secondary: #8b5cf6;
+      --accent: #d946ef;
+      --bg-dark: #030712;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --glass-bg: rgba(15, 23, 42, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --input-bg: rgba(255, 255, 255, 0.03);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg-dark);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      color: var(--text-main);
+    }
+
+    /* ANIMATED BACKGROUND */
+    .bg-animation {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+    }
+
+    .bg-grid {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+      animation: gridMove 20s linear infinite;
+    }
+
+    @keyframes gridMove {
+      0% {
+        transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px);
+      }
+
+      100% {
+        transform: perspective(500px) rotateX(60deg) translateY(60px) translateZ(-200px);
+      }
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.5;
+      animation: floatOrb 15s infinite alternate ease-in-out;
+    }
+
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: var(--primary);
+      top: -10%;
+      left: -10%;
+      animation-delay: 0s;
+    }
+
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: var(--secondary);
+      bottom: -10%;
+      right: -10%;
+      animation-delay: -5s;
+    }
+
+    .orb-3 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent);
+      top: 40%;
+      left: 40%;
+      opacity: 0.3;
+      animation-delay: -10s;
+      animation-duration: 20s;
+    }
+
+    @keyframes floatOrb {
+      0% {
+        transform: translate(0, 0) scale(1);
+      }
+
+      33% {
+        transform: translate(50px, -50px) scale(1.1);
+      }
+
+      66% {
+        transform: translate(-30px, 40px) scale(0.9);
+      }
+
+      100% {
+        transform: translate(0, 0) scale(1);
+      }
+    }
+
+    /* MAIN CONTAINER */
+    .container-wrapper {
+      position: relative;
+      z-index: 10;
+      perspective: 1000px;
+      animation: entrance 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      opacity: 0;
+      transform: translateY(40px) scale(0.95);
+    }
+
+    @keyframes entrance {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .container {
+      width: 1100px;
+      height: 680px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border-radius: 30px;
+      overflow: hidden;
+      display: flex;
+      box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    /* LEFT SECTION */
+    .left {
+      width: 50%;
+      padding: 60px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.05));
+      border-right: 1px solid var(--glass-border);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 40px;
+    }
+
+    .logo-svg {
+      width: 50px;
+      height: 50px;
+      animation: pulseLogo 3s infinite alternate;
+    }
+
+    @keyframes pulseLogo {
+      0% {
+        filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.4));
+      }
+
+      100% {
+        filter: drop-shadow(0 0 25px rgba(217, 70, 239, 0.8));
+      }
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(to right, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .left h1 {
+      font-size: 64px;
+      line-height: 1.1;
+      font-weight: 800;
+      margin-bottom: 25px;
+      background: linear-gradient(135deg, #60a5fa 0%, #c084fc 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% auto;
+      animation: gradientShift 5s ease infinite alternate;
+    }
+
+    @keyframes gradientShift {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      100% {
+        background-position: 100% 50%;
+      }
+    }
+
+    .left p {
+      font-size: 18px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      max-width: 90%;
+      margin-bottom: 40px;
+    }
+
+    .stats-container {
+      display: flex;
+      gap: 20px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 15px 20px;
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.5s ease;
+    }
+
+    .stat-box:hover::before {
+      transform: translateX(100%);
+    }
+
+    .stat-box:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* RIGHT SECTION */
+    .right {
+      width: 50%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .forms-wrapper {
+      width: 200%;
+      height: 100%;
+      display: flex;
+      transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .forms-wrapper.show-signup {
+      transform: translateX(-50%);
+    }
+
+    .form-panel {
+      width: 50%;
+      height: 100%;
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow-y: auto;
+    }
+
+    /* Custom scrollbar for form panel */
+    .form-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .form-panel::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .form-panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+
+    .form-header {
+      margin-bottom: 35px;
+    }
+
+    .title {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    /* FLOATING INPUTS */
+    .input-group {
+      position: relative;
+      margin-bottom: 25px;
+    }
+
+    .input-group input,
+    .input-group select {
+      width: 100%;
+      padding: 18px 20px;
+      background: var(--input-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .input-group select {
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      fill: var(--text-muted);
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .input-group label {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 16px;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+      border-color: var(--secondary);
+      background: rgba(139, 92, 246, 0.05);
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .input-group input:focus~label,
+    .input-group input:not(:placeholder-shown)~label {
+      top: -10px;
+      left: 15px;
+      font-size: 12px;
+      background: var(--bg-dark);
+      padding: 0 8px;
+      color: var(--secondary);
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .input-group select:focus~.select-arrow {
+      fill: var(--secondary);
+      transform: translateY(-50%) rotate(180deg);
+    }
+
+    option {
+      background: #0f172a;
+      color: white;
+      padding: 10px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+      margin-top: 10px;
+      z-index: 1;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--secondary), var(--accent));
+      transition: all 0.4s ease;
+      z-index: -1;
+    }
+
+    .btn:hover::before {
+      left: 0;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 25px rgba(217, 70, 239, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .toggle-text {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    .toggle-text span {
+      color: var(--primary);
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.3s ease;
+    }
+
+    .toggle-text span::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0%;
+      height: 2px;
+      background: var(--primary);
+      transition: width 0.3s ease;
+    }
+
+    .toggle-text span:hover {
+      color: #60a5fa;
+    }
+
+    .toggle-text span:hover::after {
+      width: 100%;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1150px) {
+      .container {
+        width: 95%;
+      }
+
+      .left h1 {
+        font-size: 48px;
+      }
+    }
+
+    @media (max-width: 850px) {
+      body {
+        padding: 20px;
+        align-items: flex-start;
+        overflow-y: auto;
+      }
+
+      .container {
+        flex-direction: column;
+        height: auto;
+        min-height: 800px;
+      }
+
+      .left,
+      .right {
+        width: 100%;
+      }
+
+      .left {
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+        padding: 40px;
+      }
+
+      .form-panel {
+        padding: 40px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ANIMATED BACKGROUND -->
+  <div class="bg-animation">
+    <div class="bg-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="container-wrapper">
+    <div class="container">
+
+      <!-- LEFT SIDE: BRANDING & INFO -->
+      <div class="left">
+        <div class="logo-container">
+          <svg class="logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3b82f6" />
+                <stop offset="100%" stop-color="#8b5cf6" />
+              </linearGradient>
+              <linearGradient id="grad2" x1="100%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#d946ef" />
+                <stop offset="100%" stop-color="#8b5cf6" />
+              </linearGradient>
+            </defs>
+            <path d="M20 80V20C20 20 45 10 65 30C80 45 75 60 55 60H20" stroke="url(#grad1)" stroke-width="12"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M55 60L80 80" stroke="url(#grad2)" stroke-width="12" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <circle cx="55" cy="40" r="8" fill="#fff" opacity="0.8" />
+          </svg>
+          <div class="logo-text">Progress Record</div>
+        </div>
+
+        <h1>Master Your<br>Preparation</h1>
+
+        <p>
+          AI-powered analytics and futuristic tracking for your competitive exams. Join thousands of top achievers
+          optimizing their success journey today.
+        </p>
+
+        <div class="stats-container">
+          <div class="stat-box">
+            <div class="stat-value">10+</div>
+            <div class="stat-label">Exams Tracked</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">98%</div>
+            <div class="stat-label">Success Rate</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">24/7</div>
+            <div class="stat-label">AI Insights</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE: FORMS -->
+      <div class="right">
+        <div class="forms-wrapper" id="formsWrapper">
+
+          <!-- LOGIN FORM -->
+          <div class="form-panel">
+            <div class="form-header">
+              <div class="title">Welcome Back</div>
+              <div class="subtitle">Log in to continue your progress</div>
+            </div>
+
+            <div class="input-group">
+              <input type="email" id="loginEmail" placeholder=" " required>
+              <label for="loginEmail">Email Address</label>
+            </div>
+
+            <div class="input-group">
+              <input type="password" id="loginPassword" placeholder=" " required>
+              <label for="loginPassword">Password</label>
+            </div>
+
+            <div class="input-group">
+              <select id="exam">
+                <option value="" disabled selected hidden>Select an Exam...</option>
+                <option>GATE</option>
+                <option>JEE</option>
+                <option>UPSC</option>
+                <option>NEET</option>
+                <option>CAT</option>
+                <option>SSC CGL</option>
+                <option>NDA</option>
+                <option>CUET</option>
+                <option>CLAT</option>
+                <option>IES</option>
+              </select>
+              <svg class="select-arrow" viewBox="0 0 24 24">
+                <path d="M7 10l5 5 5-5z" />
+              </svg>
+            </div>
+
+            <button class="btn" onclick="login()">Log In to Dashboard</button>
+
+            <div class="toggle-text">
+              New here? <span onclick="toggleForm('signup')">Create an account</span>
+            </div>
+          </div>
+
+          <!-- SIGNUP FORM -->
+          <div class="form-panel">
+            <div class="form-header">
+              <div class="title">Create Account</div>
+              <div class="subtitle">Start tracking your success today</div>
+            </div>
+
+            <div class="input-group">
+              <input type="text" id="signupName" placeholder=" " required>
+              <label for="signupName">Full Name</label>
+            </div>
+
+            <div class="input-group">
+              <input type="email" id="signupEmail" placeholder=" " required>
+              <label for="signupEmail">Email Address</label>
+            </div>
+
+            <div class="input-group">
+              <input type="password" id="signupPassword" placeholder=" " required>
+              <label for="signupPassword">Create Password</label>
+            </div>
+
+            <div class="input-group">
+              <select id="signupExam">
+                <option value="" disabled selected hidden>Select Target Exam...</option>
+                <option>GATE</option>
+                <option>JEE</option>
+                <option>UPSC</option>
+                <option>NEET</option>
+                <option>CAT</option>
+                <option>SSC CGL</option>
+                <option>NDA</option>
+                <option>CUET</option>
+                <option>CLAT</option>
+                <option>IES</option>
+              </select>
+              <svg class="select-arrow" viewBox="0 0 24 24">
+                <path d="M7 10l5 5 5-5z" />
+              </svg>
+            </div>
+
+            <button class="btn" onclick="signup()">Sign Up Now</button>
+
+            <div class="toggle-text">
+              Already have an account? <span onclick="toggleForm('login')">Log in instead</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // FORM TOGGLE LOGIC
+    function toggleForm(type) {
+      const wrapper = document.getElementById('formsWrapper');
+      if (type === 'signup') {
+        wrapper.classList.add('show-signup');
+      } else {
+        wrapper.classList.remove('show-signup');
+      }
+    }
+
+    // LOGIN API CALL
+    async function login() {
+      const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+      const password = document.getElementById("loginPassword").value;
+      const exam = document.getElementById("exam").value;
+
+      if (!email || !password || !exam) {
+        alert("Please fill all fields before logging in!");
+        return;
+      }
+
+      const btn = document.querySelector('.forms-wrapper:not(.show-signup) .btn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Logging in...';
+
+      try {
+        const response = await fetch("http://localhost:5000/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, exam })
+        });
+
+        const data = await response.json();
+        if (data.message === "Login Successful" || data.message === "Login success") {
+          localStorage.setItem("userEmail", data.email);
+          localStorage.setItem("userName", data.name);
+          window.location.href = "dashboard.html";
+        } else {
+          alert(data.error || data.message || "Login failed");
+        }
+      } catch (err) {
+        console.error("Login Error:", err);
+        alert("Error connecting to server.");
+      } finally {
+        btn.innerHTML = originalText;
+      }
+    }
+
+    // SIGNUP API CALL
+    async function signup() {
+      const name = document.getElementById("signupName").value.trim();
+      const email = document.getElementById("signupEmail").value.trim().toLowerCase();
+      const password = document.getElementById("signupPassword").value;
+      const exam = document.getElementById("signupExam").value;
+
+      if (!name || !email || !password || !exam) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      const btn = document.querySelector('.forms-wrapper.show-signup .btn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Creating Account...';
+
+      try {
+        const response = await fetch("http://localhost:5000/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, exam })
+        });
+
+        const data = await response.json();
+        alert(data.message || "Signup successful!");
+        if (response.ok) {
+          toggleForm('login');
+        }
+      } catch (err) {
+        console.error("Signup Error:", err);
+        alert("Error connecting to server.");
+      } finally {
+        btn.innerHTML = originalText;
+      }
+    }
+  </script>
+
+</body>
+
+</html>

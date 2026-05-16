@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Progress Record - Ultimate Dashboard</title>
+
+  <!-- Premium Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --secondary: #8b5cf6;
+      --accent: #d946ef;
+      --bg-dark: #030712;
+      --panel-bg: rgba(15, 23, 42, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-family: 'Outfit', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-family); transition: background-color 0.5s ease, font-family 0.3s ease; }
+    
+    body { min-height: 100vh; background: var(--bg-dark); color: var(--text-main); display: flex; overflow-x: hidden; }
+
+    /* BACKGROUND ANIMATION */
+    .bg-animation { position: fixed; width: 100vw; height: 100vh; top: 0; left: 0; z-index: -1; background: var(--bg-dark); overflow: hidden; }
+    .bg-grid { position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 60px 60px; transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px); animation: gridMove 20s linear infinite; }
+    @keyframes gridMove { 0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); } 100% { transform: perspective(500px) rotateX(60deg) translateY(60px) translateZ(-200px); } }
+    .orb { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.4; animation: floatOrb 15s infinite alternate ease-in-out; pointer-events: none; }
+    .orb-1 { width: 500px; height: 500px; background: var(--primary); top: -10%; left: -10%; }
+    .orb-2 { width: 400px; height: 400px; background: var(--secondary); bottom: -10%; right: -10%; animation-delay: -5s; }
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(150px, 100px) scale(1.2); } }
+
+    /* SIDEBAR */
+    .sidebar { width: 280px; background: var(--panel-bg); backdrop-filter: blur(20px); border-right: 1px solid var(--glass-border); padding: 30px 20px; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 30px rgba(0,0,0,0.3); }
+    .brand { display: flex; align-items: center; gap: 15px; margin-bottom: 50px; padding-left: 10px; cursor: pointer; transition: 0.3s; }
+    .brand:hover { transform: scale(1.05); }
+    .brand svg { width: 35px; height: 35px; }
+    .brand span { font-size: 20px; font-weight: 800; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    .nav-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .nav-links li a { text-decoration: none; color: var(--text-muted); padding: 15px 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; font-size: 16px; font-weight: 500; transition: 0.3s; position: relative; overflow: hidden; }
+    .nav-links li a:hover, .nav-links li a.active { color: #fff; background: rgba(255, 255, 255, 0.05); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .nav-links li a.active::before { content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 4px; background: linear-gradient(to bottom, var(--primary), var(--accent)); border-radius: 0 4px 4px 0; }
+
+    /* MAIN CONTENT */
+    .main-content { flex: 1; padding: 40px; height: 100vh; overflow-y: auto; position: relative; z-index: 10; scroll-behavior: smooth; }
+    .main-content::-webkit-scrollbar { width: 8px; }
+    .main-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+    .header-title h1 { font-size: 36px; font-weight: 800; margin-bottom: 5px; text-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+    .header-title p { color: var(--text-muted); font-size: 16px; }
+
+    .user-profile { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.03); padding: 10px 20px; border-radius: 30px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); cursor: pointer; transition: 0.3s; }
+    .user-profile:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2); }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; justify-content: center; align-items: center; font-weight: 700; box-shadow: 0 0 15px var(--primary); }
+
+    /* STATS & CHARTS */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 30px; }
+    .stat-card { background: var(--panel-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 25px; backdrop-filter: blur(20px); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .stat-card:hover { transform: translateY(-5px); border-color: rgba(139, 92, 246, 0.3); }
+    .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .stat-title { color: var(--text-muted); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+    .stat-icon { width: 45px; height: 45px; border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 22px; background: rgba(255,255,255,0.05); }
+    .stat-value { font-size: 40px; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 30px; }
+    .chart-panel { background: var(--panel-bg); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; backdrop-filter: blur(20px); transition: 0.3s; }
+    .chart-panel.full-width { grid-column: 1 / -1; }
+    .panel-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .panel-title { font-size: 20px; font-weight: 800; }
+    .chart-container { position: relative; height: 320px; width: 100%; }
+
+    /* UI COMPONENTS */
+    .btn-small { padding: 12px 24px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3); position: relative; overflow: hidden; }
+    .btn-small::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: 0.5s; }
+    .btn-small:hover::after { left: 100%; }
+    .btn-small:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5); }
+
+    .action-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 12px; }
+    .action-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.1); }
+    .action-btn.delete:hover { background: #f87171; color: #fff; border-color: #f87171; }
+
+    /* NESTED SUBJECTS LIST */
+    .subjects-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 25px; }
+    .subject-card { background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 20px; padding: 25px; position: relative; transform-style: preserve-3d; }
+    
+    .subject-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .subject-name { font-size: 22px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .subject-progress { font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 20px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    
+    .topic-wrapper { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 15px; margin-bottom: 12px; }
+    .topic-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .topic-title { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .topic-meta { display: flex; gap: 5px; align-items: center; }
+    .topic-date { font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 3px 8px; border-radius: 6px; }
+    .deadline-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    .subtopics-list { padding-left: 15px; border-left: 2px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
+    .subtopic-item { padding: 10px 12px; background: rgba(255,255,255,0.02); border-radius: 10px; margin-bottom: 8px; border: 1px solid transparent; transition: 0.2s; }
+    .subtopic-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.05); }
+    .subtopic-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .subtopic-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
+    .subtopic-name.completed { text-decoration: line-through; color: var(--text-muted); }
+    
+    /* 4TH LEVEL: TASKS */
+    .tasks-list { padding-left: 15px; border-left: 1px dashed rgba(255,255,255,0.1); margin-top: 5px; }
+    .task-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 13px; color: var(--text-muted); }
+    .task-item:hover { color: #fff; }
+    .task-left { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .task-checkbox { width: 14px; height: 14px; border: 1px solid var(--text-muted); border-radius: 4px; display: inline-block; transition: 0.2s; }
+    .task-checkbox.checked { background: #6ee7b7; border-color: #6ee7b7; box-shadow: 0 0 10px #6ee7b7; }
+    .task-name.completed { text-decoration: line-through; opacity: 0.5; }
+
+    .add-btn-dashed { width: 100%; padding: 8px; border-radius: 8px; background: transparent; border: 1px dashed rgba(255,255,255,0.2); color: var(--text-muted); cursor: pointer; transition: 0.3s; font-weight: 600; font-size: 12px; margin-top: 5px; }
+    .add-btn-dashed:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: var(--primary); }
+
+    /* MODALS */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; pointer-events: none; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .modal-overlay.active { opacity: 1; pointer-events: all; }
+    .modal-content { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 35px; width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.6); transform: scale(0.8) translateY(30px); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
+    .modal-title { font-size: 26px; font-weight: 800; margin-bottom: 25px; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    .modal-input { width: 100%; padding: 16px; background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.05); border-radius: 14px; color: #fff; font-size: 16px; outline: none; margin-bottom: 15px; transition: 0.3s; }
+    .modal-input:focus { border-color: var(--primary); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+    
+    .modal-actions { display: flex; gap: 15px; justify-content: flex-end; margin-top: 10px; }
+    .btn-cancel { padding: 12px 24px; border: none; border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; font-weight: 700; cursor: pointer; transition: 0.3s; }
+    .btn-cancel:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+
+    /* SETTINGS MODAL UI */
+    .settings-group { margin-bottom: 20px; }
+    .settings-label { display: block; font-size: 14px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    .settings-select { width: 100%; padding: 14px; background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.05); border-radius: 12px; color: #fff; outline: none; transition: 0.3s; font-size: 15px; cursor: pointer; }
+    .color-picker { display: flex; gap: 15px; }
+    .color-swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.3s; }
+    .color-swatch:hover, .color-swatch.active { transform: scale(1.2); border-color: #fff; box-shadow: 0 0 15px currentColor; }
+
+  </style>
+</head>
+<body>
+
+  <div class="bg-animation">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="bg-grid"></div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6" /><stop offset="100%" stop-color="#8b5cf6" /></linearGradient></defs>
+        <path d="M20 80V20C20 20 45 10 65 30C80 45 75 60 55 60H20" stroke="url(#g1)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Progress Record</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="active" onclick="window.scrollTo(0,0)">📊 Dynamic Dashboard</a></li>
+      <li><a href="#subjectsContainer" onclick="document.getElementById('subjectsContainer').scrollIntoView()">📚 My Subjects</a></li>
+      <li><a href="#" onclick="openSettingsModal()">⚙️ Theme & Settings</a></li>
+      <li style="margin-top: auto;"><a href="#" onclick="logout()" style="color: #f87171;">🚪 Logout</a></li>
+    </ul>
+  </aside>
+
+  <main class="main-content">
+    
+    <header class="gsap-fade">
+      <div class="header-title">
+        <h1 id="welcomeText">Welcome back! 🚀</h1>
+        <p>Your personalized dynamic preparation tracker.</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <button class="btn-small" onclick="openInputModal('subject')" style="box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);">+ Create Subject</button>
+        <div class="user-profile" onclick="openSettingsModal()" title="Theme & Settings">
+          <div class="avatar" id="userInitial">U</div>
+          <div class="user-info">
+            <div style="font-weight: 700; font-size: 15px;" id="userName">Loading...</div>
+            <div style="font-size: 12px; color: var(--text-muted);" id="userEmailTag">user@example.com</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="stats-grid gsap-fade">
+      <div class="stat-card" data-tilt data-tilt-max="10" data-tilt-speed="400">
+        <div class="stat-header"><span class="stat-title">Overall Mastery</span><div class="stat-icon icon-1">🎯</div></div>
+        <div class="stat-value" id="overallMastery">0%</div>
+      </div>
+      <div class="stat-card" data-tilt data-tilt-max="10" data-tilt-speed="400">
+        <div class="stat-header"><span class="stat-title">Total Subjects</span><div class="stat-icon icon-2">📚</div></div>
+        <div class="stat-value" id="totalSubjectsStat">0</div>
+      </div>
+      <div class="stat-card" data-tilt data-tilt-max="10" data-tilt-speed="400">
+        <div class="stat-header"><span class="stat-title">Completed Tasks</span><div class="stat-icon icon-3">✅</div></div>
+        <div class="stat-value" id="completedTopicsStat">0</div>
+      </div>
+    </div>
+
+    <div class="charts-grid gsap-fade">
+      <div class="chart-panel">
+        <div class="panel-header"><h3 class="panel-title">Subject Performance</h3></div>
+        <div class="chart-container"><canvas id="mainChart"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="panel-header"><h3 class="panel-title">Completion Ratio</h3></div>
+        <div class="chart-container"><canvas id="doughnutChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-panel full-width gsap-fade" style="margin-top: 30px;">
+      <div class="panel-header">
+        <h3 class="panel-title" style="font-size: 26px;">My Subjects Explorer</h3>
+      </div>
+      <div class="subjects-list" id="subjectsContainer">
+        <!-- Dynamic subjects injected here -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MULTI-PURPOSE INPUT MODAL -->
+  <div class="modal-overlay" id="inputModal">
+    <div class="modal-content">
+      <h2 class="modal-title" id="inputModalTitle">Add Item</h2>
+      <input type="text" class="modal-input" id="inputModalField" placeholder="Enter name here...">
+      
+      <!-- Date Picker for Deadlines (Only shown for Topics) -->
+      <div id="datePickerContainer" style="display: none; margin-bottom: 15px;">
+        <span class="settings-label" style="font-size: 12px; color: var(--primary);">Target Deadline (Optional)</span>
+        <input type="date" class="modal-input" id="inputModalDate" style="margin-bottom: 0;">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+        <button class="btn-small" onclick="submitInputModal()" id="inputModalSubmit">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content">
+      <h2 class="modal-title">Theme & Settings</h2>
+      <div class="settings-group">
+        <span class="settings-label">Background Theme</span>
+        <div class="color-picker" id="colorPicker">
+          <div class="color-swatch active" style="background: #030712; color: #3b82f6;" onclick="selectTheme('#030712', this)"></div>
+          <div class="color-swatch" style="background: #0f172a; color: #6366f1;" onclick="selectTheme('#0f172a', this)"></div>
+          <div class="color-swatch" style="background: #1e1b4b; color: #a855f7;" onclick="selectTheme('#1e1b4b', this)"></div>
+          <div class="color-swatch" style="background: #064e3b; color: #10b981;" onclick="selectTheme('#064e3b', this)"></div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <span class="settings-label">Typography Style</span>
+        <select class="settings-select" id="fontSelect">
+          <option value="'Outfit', sans-serif">Outfit (Modern sans)</option>
+          <option value="'Playfair Display', serif">Playfair Display (Elegant Serif)</option>
+          <option value="'Roboto Mono', monospace">Roboto Mono (Developer)</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <span class="settings-label">Main Chart Type</span>
+        <select class="settings-select" id="chartTypeSelect">
+          <option value="radar">Radar Chart (Spider web)</option>
+          <option value="bar">Bar Chart (Standard columns)</option>
+          <option value="polarArea">Polar Area (Radial bars)</option>
+        </select>
+      </div>
+      <div class="modal-actions" style="margin-top: 30px;">
+        <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+        <button class="btn-small" onclick="saveSettings()">Save & Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let mainChartInstance = null; let doughnutChartInstance = null;
+    let userData = null; let currentTheme = { bgColor: '#030712', fontFamily: "'Outfit', sans-serif", chartType: 'radar' };
+    
+    const userEmail = localStorage.getItem("userEmail");
+    if(!userEmail) { window.location.href = "index.html"; }
+    document.getElementById("userEmailTag").innerText = userEmail;
+
+    let modalConfig = { action: '', type: '', subjectId: null, topicId: null, subtopicId: null, taskId: null };
+
+    function runGSAP() { gsap.from(".gsap-fade", { y: 30, opacity: 0, duration: 0.8, stagger: 0.15, ease: "power3.out" }); }
+
+    async function loadData() {
+      try {
+        const response = await fetch(`http://localhost:5000/data/${userEmail}`);
+        if(response.ok) {
+          userData = await response.json();
+          if(userData.themeSettings) { currentTheme = { ...currentTheme, ...userData.themeSettings }; applyThemeToDOM(currentTheme); }
+          document.getElementById("userName").innerText = userData.name || "Aspirant";
+          document.getElementById("userInitial").innerText = (userData.name || "A").charAt(0).toUpperCase();
+          document.getElementById("welcomeText").innerText = `Welcome back, ${userData.name.split(' ')[0]}! 🚀`;
+          renderUI(userData.subjects || []);
+          if(!window.initialLoadDone) { runGSAP(); window.initialLoadDone = true; }
+        } else { logout(); }
+      } catch (err) { console.error("Failed to load data", err); }
+    }
+
+    function renderUI(subjects) {
+      const container = document.getElementById("subjectsContainer"); container.innerHTML = "";
+      if(subjects.length === 0) { container.innerHTML = `<p style="color: var(--text-muted); font-size: 16px;">No subjects added yet. Click "+ Create Subject" at the top to begin!</p>`; }
+
+      let totalTasks = 0; let completedTasksTotal = 0; const chartLabels = []; const chartData = [];
+
+      subjects.forEach(subject => {
+        let completedInSub = 0; let totalInSub = 0; let topicsHtml = "";
+        
+        const topics = subject.topics || [];
+        topics.forEach(topic => {
+          let dateHtml = "";
+          if(topic.deadline) {
+            const daysLeft = Math.ceil((new Date(topic.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+            dateHtml = `<span class="deadline-badge">⌛ ${daysLeft >= 0 ? daysLeft + ' days left' : 'Overdue'}</span>`;
+          } else if(topic.createdAt) {
+            dateHtml = `<span class="topic-date">📅 ${new Date(topic.createdAt).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>`;
+          }
+
+          let subtopicsHtml = "";
+          const subtopics = topic.subtopics || [];
+          subtopics.forEach(st => {
+            let tasksHtml = "";
+            const tasks = st.tasks || [];
+            tasks.forEach(task => {
+              totalTasks++; totalInSub++;
+              if(task.completed) { completedTasksTotal++; completedInSub++; }
+              
+              tasksHtml += `
+                <div class="task-item">
+                  <div class="task-left" onclick="toggleTask('${subject._id}', '${topic._id}', '${st._id}', '${task._id}')">
+                    <span class="task-checkbox ${task.completed ? 'checked' : ''}"></span>
+                    <span class="task-name ${task.completed ? 'completed' : ''}">${task.name}</span>
+                  </div>
+                  <div style="display:flex; gap:5px;">
+                    <button class="action-btn" onclick="openInputModal('edit', 'task', '${subject._id}', '${topic._id}', '${st._id}', '${task._id}', '${task.name}')">✏️</button>
+                    <button class="action-btn delete" onclick="deleteItem('delete-task', '${subject._id}', '${topic._id}', '${st._id}', '${task._id}')">🗑️</button>
+                  </div>
+                </div>
+              `;
+            });
+
+            subtopicsHtml += `
+              <div class="subtopic-item">
+                <div class="subtopic-header">
+                  <span class="subtopic-name ${st.completed ? 'completed' : ''}">📂 ${st.name}</span>
+                  <div style="display:flex; gap:5px;">
+                    <button class="action-btn" onclick="openInputModal('edit', 'subtopic', '${subject._id}', '${topic._id}', '${st._id}', null, '${st.name}')">✏️</button>
+                    <button class="action-btn delete" onclick="deleteItem('delete-subtopic', '${subject._id}', '${topic._id}', '${st._id}')">🗑️</button>
+                  </div>
+                </div>
+                ${tasksHtml ? `<div class="tasks-list">${tasksHtml}</div>` : ''}
+                <button class="add-btn-dashed" onclick="openInputModal('add', 'task', '${subject._id}', '${topic._id}', '${st._id}')">+ Add Task (Level 4)</button>
+              </div>
+            `;
+          });
+
+          topicsHtml += `
+            <div class="topic-wrapper">
+              <div class="topic-header">
+                <span class="topic-title">📚 ${topic.name}</span>
+                <div class="topic-meta">
+                  ${dateHtml}
+                  <button class="action-btn" onclick="openInputModal('edit', 'topic', '${subject._id}', '${topic._id}', null, null, '${topic.name}')">✏️</button>
+                  <button class="action-btn delete" onclick="deleteItem('delete-topic', '${subject._id}', '${topic._id}')">🗑️</button>
+                </div>
+              </div>
+              <div class="subtopics-list">${subtopicsHtml}</div>
+              <button class="add-btn-dashed" style="border-color: rgba(255,255,255,0.4);" onclick="openInputModal('add', 'subtopic', '${subject._id}', '${topic._id}')">+ Add Subtopic (Level 3)</button>
+            </div>
+          `;
+        });
+
+        const masteryPercentage = totalInSub > 0 ? Math.round((completedInSub / totalInSub) * 100) : 0;
+        chartLabels.push(subject.name); chartData.push(masteryPercentage);
+
+        container.innerHTML += `
+          <div class="subject-card" data-tilt data-tilt-max="5" data-tilt-speed="400">
+            <div class="subject-header">
+              <div class="subject-name">
+                ${subject.name} <span class="subject-progress">${masteryPercentage}% Mastery</span>
+              </div>
+              <div style="display:flex; gap:5px;">
+                <div class="action-btn" style="width:35px; height:35px;" onclick="openInputModal('edit', 'subject', '${subject._id}', null, null, null, '${subject.name}')">✏️</div>
+                <div class="action-btn delete" style="width:35px; height:35px;" onclick="deleteItem('delete-subject', '${subject._id}')">🗑️</div>
+              </div>
+            </div>
+            <div class="topics-wrapper">
+              ${topicsHtml}
+              <button class="add-btn-dashed" style="border-color: var(--primary); color: #fff; background: rgba(59, 130, 246, 0.1); margin-top: 15px;" onclick="openInputModal('add', 'topic', '${subject._id}')">⭐ Add Topic (Level 2)</button>
+            </div>
+          </div>
+        `;
+      });
+
+      VanillaTilt.init(document.querySelectorAll(".subject-card"));
+      document.getElementById("totalSubjectsStat").innerText = subjects.length;
+      document.getElementById("completedTopicsStat").innerText = `${completedTasksTotal} / ${totalTasks}`;
+      document.getElementById("overallMastery").innerText = `${totalTasks > 0 ? Math.round((completedTasksTotal / totalTasks) * 100) : 0}%`;
+
+      updateCharts(chartLabels, chartData, totalTasks, completedTasksTotal);
+    }
+
+    function updateCharts(labels, data, total, completed) {
+      Chart.defaults.color = '#94a3b8'; Chart.defaults.font.family = currentTheme.fontFamily;
+      const ctxMain = document.getElementById('mainChart').getContext('2d');
+      if(mainChartInstance) mainChartInstance.destroy();
+      mainChartInstance = new Chart(ctxMain, {
+        type: currentTheme.chartType,
+        data: { labels: labels.length > 0 ? labels : ['No Data'], datasets: [{ label: 'Mastery %', data: labels.length > 0 ? data : [0], backgroundColor: currentTheme.chartType === 'bar' ? 'rgba(59, 130, 246, 0.6)' : 'rgba(139, 92, 246, 0.3)', borderColor: currentTheme.chartType === 'bar' ? '#3b82f6' : '#8b5cf6', borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: currentTheme.chartType === 'radar' || currentTheme.chartType === 'polarArea' ? { r: { ticks: { display: false, max: 100 } } } : { y: { max: 100 } } }
+      });
+
+      const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+      if(doughnutChartInstance) doughnutChartInstance.destroy();
+      doughnutChartInstance = new Chart(ctxDoughnut, { type: 'doughnut', data: { labels: ['Completed', 'Pending'], datasets: [{ data: total > 0 ? [completed, total - completed] : [0, 1], backgroundColor: ['#3b82f6', 'rgba(255,255,255,0.05)'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom' } } } });
+    }
+
+    // --- MODALS & API CALLS ---
+    // action = 'add' or 'edit'. type = 'subject', 'topic', 'subtopic', 'task'
+    function openInputModal(action, type, subId=null, topId=null, subtopId=null, taskId=null, currentName='') {
+      modalConfig = { action, type, subjectId: subId, topicId: topId, subtopicId: subtopId, taskId };
+      const titles = { 'add': `Add New ${type}`, 'edit': `Edit ${type}` };
+      document.getElementById("inputModalTitle").innerText = titles[action];
+      document.getElementById("inputModalField").value = currentName;
+      document.getElementById("datePickerContainer").style.display = type === 'topic' ? 'block' : 'none';
+      document.getElementById("inputModalDate").value = '';
+      document.getElementById("inputModal").classList.add("active");
+      setTimeout(() => document.getElementById("inputModalField").focus(), 100);
+    }
+
+    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); }
+
+    async function submitInputModal() {
+      const val = document.getElementById("inputModalField").value.trim();
+      const dateVal = document.getElementById("inputModalDate").value;
+      if(!val) return;
+      const btn = document.getElementById("inputModalSubmit"); btn.innerText = "Saving...";
+      
+      try {
+        let url = "http://localhost:5000/";
+        let body = { email: userEmail, ...modalConfig };
+
+        if(modalConfig.action === 'edit') {
+          url += "edit-item"; body.newName = val; body.deadline = dateVal;
+        } else {
+          if(modalConfig.type === 'subject') { url += "add-subject"; body.subjectName = val; }
+          else if(modalConfig.type === 'topic') { url += "add-topic"; body.topicName = val; }
+          else if(modalConfig.type === 'subtopic') { url += "add-subtopic"; body.subtopicName = val; }
+          else if(modalConfig.type === 'task') { url += "add-task"; body.taskName = val; }
+        }
+        
+        await fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+          .catch(() => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })); // Fallback for POST routes
+        
+        await loadData();
+      } catch(err) { alert("Error saving data."); }
+      finally { btn.innerText = "Save"; closeModals(); }
+    }
+
+    async function toggleTask(subjectId, topicId, subtopicId, taskId) {
+      await fetch("http://localhost:5000/toggle-task", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: userEmail, subjectId, topicId, subtopicId, taskId }) });
+      loadData();
+    }
+
+    async function deleteItem(route, subId, topId=null, subtopId=null, taskId=null) {
+      if(!confirm("Permanently delete this item?")) return;
+      let url = `http://localhost:5000/${route}/${userEmail}/${subId}`;
+      if(topId) url += `/${topId}`; if(subtopId) url += `/${subtopId}`; if(taskId) url += `/${taskId}`;
+      await fetch(url, { method: "DELETE" });
+      loadData();
+    }
+
+    // --- SETTINGS ---
+    let tempTheme = {};
+    function openSettingsModal() {
+      tempTheme = { ...currentTheme };
+      document.getElementById("fontSelect").value = currentTheme.fontFamily;
+      document.getElementById("chartTypeSelect").value = currentTheme.chartType;
+      document.querySelectorAll('.color-swatch').forEach(el => {
+        el.classList.remove('active');
+        if(el.getAttribute('onclick').includes(currentTheme.bgColor)) el.classList.add('active');
+      });
+      document.getElementById("settingsModal").classList.add("active");
+    }
+    function selectTheme(color, el) { tempTheme.bgColor = color; document.querySelectorAll('.color-swatch').forEach(e => e.classList.remove('active')); el.classList.add('active'); }
+    
+    async function saveSettings() {
+      tempTheme.fontFamily = document.getElementById("fontSelect").value;
+      tempTheme.chartType = document.getElementById("chartTypeSelect").value;
+      const btn = document.querySelector("#settingsModal .btn-small"); btn.innerText = "Saving...";
+      try {
+        await fetch("http://localhost:5000/update-settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: userEmail, ...tempTheme }) });
+        currentTheme = { ...tempTheme }; applyThemeToDOM(currentTheme); loadData();
+      } catch(err) { alert("Error saving settings."); }
+      finally { btn.innerText = "Save & Apply"; closeModals(); }
+    }
+    function applyThemeToDOM(theme) { document.documentElement.style.setProperty('--bg-dark', theme.bgColor); document.documentElement.style.setProperty('--font-family', theme.fontFamily); }
+    function logout() { localStorage.removeItem("userEmail"); window.location.href = "index.html"; }
+
+    loadData();
+  </script>
+</body>
+</html>
