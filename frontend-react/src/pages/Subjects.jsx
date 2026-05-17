@@ -71,39 +71,42 @@ function Modal({ title, onClose, onSave, defaultValue = '', showDate = false, sh
   const submit = () => val.trim() && onSave(val.trim(), date || null, notes);
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4"
       style={{ zIndex: 9999 }}
       onClick={onClose}>
-      <motion.div initial={{ opacity: 0, scale: 0.96, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9 }}
         onClick={e => e.stopPropagation()}
-        className="bg-[var(--bg-tertiary)] rounded-2xl w-full max-w-md border border-[var(--border)] shadow-2xl flex flex-col"
+        className="glass rounded-2xl w-full max-w-md border border-white/10 shadow-2xl flex flex-col"
         style={{ maxHeight: '85vh' }}>
-        <div className="flex justify-between items-center p-6 pb-4 flex-shrink-0">
-          <h3 className="text-white font-semibold text-lg">{title}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-white hover:bg-[var(--surface)] transition-all"><X size={16} /></button>
+        {/* Header — fixed */}
+        <div className="flex justify-between items-center p-7 pb-4 flex-shrink-0">
+          <h3 className="text-white font-bold text-xl">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"><X size={18} /></button>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 pb-2" style={{ minHeight: 0 }}>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-7 pb-2" style={{ minHeight: 0 }}>
           <input autoFocus value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()}
-            placeholder="Enter name..." className="input-field mb-3" />
+            placeholder="Enter name..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all mb-3" />
           {showDate && (
             <div className="mb-3">
-              <label className="text-overline mb-1.5 block">Deadline <span className="normal-case text-[var(--text-quaternary)]">(optional)</span></label>
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-1.5 block">Target Deadline <span className="normal-case text-slate-600">(optional)</span></label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="input-field [color-scheme:dark]" />
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-all [color-scheme:dark]" />
             </div>
           )}
           {showNotes && (
             <div className="mb-3">
-              <label className="text-overline mb-1.5 block">Notes <span className="normal-case text-[var(--text-quaternary)]">(optional)</span></label>
+              <label className="text-xs text-slate-400 uppercase tracking-wider mb-1.5 block">Notes <span className="normal-case text-slate-600">(optional)</span></label>
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                placeholder="Add notes..." className="input-field resize-none" />
+                placeholder="Add notes..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all resize-none" />
             </div>
           )}
         </div>
-        <div className="flex gap-3 p-6 pt-4 border-t border-[var(--border)] flex-shrink-0">
-          <button onClick={onClose} className="btn-secondary flex-1 py-2.5">Cancel</button>
-          <button onClick={submit} className="btn-primary flex-1 py-2.5">
-            <Save size={14} /> Save
+        {/* Footer — always visible */}
+        <div className="flex gap-3 p-7 pt-4 border-t border-white/5 flex-shrink-0">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-white/5 text-slate-300 font-semibold hover:bg-white/10 transition-all">Cancel</button>
+          <button onClick={submit} className="flex-1 py-2.5 btn-neon rounded-xl text-white font-semibold flex items-center justify-center gap-2">
+            <Save size={15} /> Save
           </button>
         </div>
       </motion.div>
@@ -396,8 +399,8 @@ function SubjectCard({ subject, onUpdate }) {
   };
 
   return (
-    <motion.div layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-      className="glass-card rounded-2xl overflow-hidden">
+    <motion.div layout initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+      className="glass rounded-2xl border border-white/8 cyber-card overflow-hidden">
       <div className="p-5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -447,8 +450,8 @@ function SubjectCard({ subject, onUpdate }) {
               {topics.map(t => <TopicCard key={t._id} topic={t} subjectId={subject._id} onUpdate={onUpdate} />)}
               {topics.length === 0 && <p className="text-slate-500 text-sm mb-3">No topics yet. Add your first one!</p>}
               <button onClick={() => { setEditing(false); setAddingTopic(true); }}
-                className="w-full py-2.5 border border-dashed border-[var(--border)] rounded-xl text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--surface)] transition-all flex items-center justify-center gap-2">
-                <Plus size={14} /> Add Topic
+                className="w-full py-2.5 border border-dashed border-blue-500/40 rounded-xl text-blue-400 text-sm font-semibold hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2">
+                <Plus size={14} /> Add Topic with Deadline
               </button>
             </div>
           </motion.div>
@@ -505,27 +508,27 @@ export default function Subjects() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight font-display">Subjects</h1>
-          <p className="text-caption mt-1">
-            {subjects.length} subject{subjects.length !== 1 ? 's' : ''} · Mastery:
-            <span className="font-semibold text-white ml-1">{totalMastery}%</span>
+          <h1 className="text-3xl font-black text-white">My Subjects</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            {subjects.length} subject{subjects.length !== 1 ? 's' : ''} · Overall mastery:
+            <span className={`font-bold ml-1 ${totalMastery >= 80 ? 'text-emerald-400' : totalMastery >= 50 ? 'text-blue-400' : 'text-slate-300'}`}>{totalMastery}%</span>
           </p>
         </div>
-        <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowModal(true)}
-          className="btn-primary text-xs">
-          <Plus size={14} /> New Subject
+        <motion.button whileTap={{ scale: 0.96 }} onClick={() => setShowModal(true)}
+          className="btn-neon px-5 py-2.5 rounded-xl text-white font-bold flex items-center gap-2">
+          <Plus size={18} /> Create Subject
         </motion.button>
       </div>
 
       {subjects.length === 0 ? (
-        <div className="glass-card rounded-2xl p-16 text-center">
-          <BookOpen size={32} className="text-[var(--text-quaternary)] mx-auto mb-3" />
-          <h3 className="text-white font-semibold text-base mb-1">No subjects yet</h3>
-          <p className="text-caption text-xs mb-5 max-w-sm mx-auto">
-            Create your first subject to start organizing your study plan.
+        <div className="glass rounded-2xl p-16 text-center border border-white/5">
+          <BookOpen size={52} className="text-slate-700 mx-auto mb-4" />
+          <h3 className="text-white font-bold text-xl mb-2">No subjects yet</h3>
+          <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+            Create your first subject to start organizing your study plan with topics, subtopics, and tasks.
           </p>
-          <button onClick={() => setShowModal(true)} className="btn-primary text-xs">
-            Create first subject
+          <button onClick={() => setShowModal(true)} className="btn-neon px-6 py-3 rounded-xl text-white font-bold">
+            + Create First Subject
           </button>
         </div>
       ) : (
