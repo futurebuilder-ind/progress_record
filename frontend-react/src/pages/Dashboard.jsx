@@ -124,8 +124,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard icon={Brain} label="Neural Mastery" value={`${mastery}%`} delay={0.1} trend="Stable" />
         <StatCard icon={BookOpen} label="Active Subjects" value={subjectCount} delay={0.2} />
-        <StatCard icon={Target} label="Tasks Executed" value={`${completedTasks}/${totalTasks}`} delay={0.3} trend="Optimal" />
-        <StatCard icon={Trophy} label="Daily Streak" value={`${consistency} D`} delay={0.4} trend="Active" />
+        <StatCard icon={Target} label="Tasks Executed" value={totalTasks === 0 ? '0' : `${completedTasks}/${totalTasks}`} delay={0.3} trend="Optimal" />
+        <StatCard icon={Trophy} label="Daily Streak" value={`${consistency} D`} delay={0.4} trend={consistency > 0 ? "Active" : ""} />
       </div>
 
       {/* Main Bento Grid */}
@@ -262,10 +262,10 @@ export default function Dashboard() {
       
       {/* Footer Branding */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-        className="pt-8 text-center text-slate-600 text-[10px] font-mono tracking-widest uppercase flex items-center justify-center gap-4">
-        <span>v3.0.0</span>
+        className="pt-8 text-center text-slate-600 text-[10px] font-mono tracking-widest flex items-center justify-center gap-4 uppercase">
+        <span>ENGINEERED BY AVEE RANJAN</span>
         <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-        <span>Developer Build</span>
+        <span>v3.0.0 Developer Build</span>
         <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
         <span>System Nominal</span>
       </motion.div>

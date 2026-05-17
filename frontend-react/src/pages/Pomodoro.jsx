@@ -8,6 +8,7 @@ const MODES = [
   { label: 'Focus',       duration: 25 * 60, color: 'from-blue-500 to-purple-600',   type: 'focus' },
   { label: 'Short Break', duration:  5 * 60, color: 'from-emerald-500 to-teal-600',  type: 'break' },
   { label: 'Long Break',  duration: 15 * 60, color: 'from-orange-500 to-red-600',    type: 'break' },
+  { label: 'Custom',      duration: 60 * 60, color: 'from-fuchsia-500 to-pink-600',  type: 'focus', isCustom: true },
 ];
 
 const LS_KEY = 'pomodoro_state';
@@ -27,6 +28,7 @@ function loadSaved() {
 export default function Pomodoro() {
   const savedState = useRef(loadSaved());
   const [modeIdx, setModeIdx]   = useState(savedState.current?.modeIdx ?? 0);
+  const [customMinutes, setCustomMinutes] = useState(60);
   const [timeLeft, setTimeLeft] = useState(savedState.current?.timeLeft ?? MODES[0].duration);
   const [running, setRunning]   = useState(false);
   const [muted, setMuted]       = useState(false);
@@ -107,13 +109,20 @@ export default function Pomodoro() {
     clearInterval(intervalRef.current);
     setRunning(false);
     setModeIdx(idx);
-    setTimeLeft(MODES[idx].duration);
+    setTimeLeft(MODES[idx].isCustom ? customMinutes * 60 : MODES[idx].duration);
+  };
+
+  const handleCustomChange = (e) => {
+    const val = parseInt(e.target.value) || 1;
+    const mins = Math.max(1, Math.min(val, 240));
+    setCustomMinutes(mins);
+    setTimeLeft(mins * 60);
   };
 
   const reset = () => {
     clearInterval(intervalRef.current);
     setRunning(false);
-    setTimeLeft(mode.duration);
+    setTimeLeft(mode.isCustom ? customMinutes * 60 : mode.duration);
   };
 
   return (
@@ -126,14 +135,24 @@ export default function Pomodoro() {
       </div>
 
       {/* Mode Tabs */}
-      <div className="flex gap-2 glass rounded-2xl p-2">
+      <div className="flex gap-2 glass-card rounded-2xl p-2 bg-[#050505]">
         {MODES.map((m, i) => (
           <button key={i} onClick={() => switchMode(i)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${modeIdx === i ? 'bg-gradient-to-r ' + m.color + ' text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+            className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all uppercase tracking-widest ${modeIdx === i ? 'bg-gradient-to-r ' + m.color + ' text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
             {m.label}
           </button>
         ))}
       </div>
+
+      {mode.isCustom && !running && (
+        <div className="flex items-center justify-center gap-4 mt-4 glass-card p-4 rounded-2xl">
+          <label className="text-xs text-slate-400 font-bold uppercase tracking-widest">Custom Time (Mins):</label>
+          <input 
+            type="number" min="1" max="240" value={customMinutes} onChange={handleCustomChange}
+            className="w-20 bg-[#0a0a0a] border border-white/10 text-white rounded-lg px-3 py-2 text-center focus:outline-none focus:border-purple-500 font-mono"
+          />
+        </div>
+      )}
 
       {/* Timer Circle */}
       <div className="flex flex-col items-center">
