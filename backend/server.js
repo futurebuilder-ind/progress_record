@@ -28,10 +28,10 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key'],
 }));
 app.options('*', cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 /* ── DB ── */
 mongoose.connect(process.env.MONGO_URI)
@@ -379,7 +379,10 @@ app.post("/notes", auth, async (req, res) => {
       color: color || '#1e293b',
     });
     res.status(201).json({ note });
-  } catch (e) { res.status(500).json({ message: e.message }); }
+  } catch (e) {
+    console.error("Notes create error:", e);
+    res.status(500).json({ message: e.message });
+  }
 });
 
 app.patch("/notes/:id", auth, async (req, res) => {

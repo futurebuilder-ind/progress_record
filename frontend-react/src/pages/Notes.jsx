@@ -147,26 +147,38 @@ export default function Notes() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Limit file size to 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Max 5MB allowed.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (event) => {
-      const text = event.target.result;
+      let text = event.target.result;
+      // Truncate extremely long files to prevent payload issues
+      if (text.length > 500000) {
+        text = text.substring(0, 500000) + '\n\n--- [Truncated at 500K characters] ---';
+        toast('Large file truncated to 500K characters', { icon: '⚠️' });
+      }
       try {
         const payload = {
-          title: file.name.split('.')[0] || 'Uploaded Note',
+          title: file.name.replace(/\.[^/.]+$/, '') || 'Uploaded Note',
           body: text,
-          tags: ['imported'],
+          tags: ['imported', file.name.split('.').pop()],
           color: '#1e293b'
         };
         const { data } = await API.post('/notes', payload);
         setNotes(n => [data.note, ...n]);
-        toast.success(`File "${file.name}" uploaded successfully! 🚀`);
-      } catch {
-        toast.error('Failed to save uploaded file as note.');
+        toast.success(`"${file.name}" imported successfully! 🚀`);
+      } catch (err) {
+        console.error('Upload error:', err);
+        toast.error(err?.response?.data?.message || 'Failed to save file. Server may be restarting.');
       }
     };
     reader.onerror = () => toast.error('Failed to read file from system.');
     reader.readAsText(file);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
   const filtered = notes.filter(n =>
