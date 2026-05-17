@@ -875,10 +875,6 @@ const geminiAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env
 
 app.post("/ai/chat", auth, async (req, res) => {
   try {
-    if (!geminiAI) {
-      return res.status(503).json({ message: 'AI is not configured. Ask admin to add GEMINI_API_KEY.' });
-    }
-    
     const { message, history } = req.body;
     if (!message?.trim()) return res.status(400).json({ message: 'Message required' });
 
@@ -890,26 +886,33 @@ app.post("/ai/chat", auth, async (req, res) => {
     const totalFocusMin = focusSessions.reduce((a, s) => a + s.durationMinutes, 0);
 
     // Build user context
-    const subjects = (user.subjects || []).map(s => {
+    const subjectList = (user.subjects || []).map(s => {
       const topics = (s.topics || []);
       const total = topics.length;
       const done = topics.filter(t => t.completed).length;
-      return `${s.name}: ${done}/${total} topics done (${total > 0 ? Math.round(done/total*100) : 0}%)`;
-    }).join('; ');
+      return { name: s.name, done, total, pct: total > 0 ? Math.round(done/total*100) : 0 };
+    });
 
     const activeGoals = goals.filter(g => !g.completed).map(g => {
       const pct = g.target > 0 ? Math.round(g.current / g.target * 100) : 0;
-      return `${g.title}: ${pct}% done`;
-    }).join('; ');
+      return `${g.title} (${pct}%)`;
+    });
 
-    const systemPrompt = `You are an intelligent AI study assistant inside "Progress Record" — a productivity app for students. You speak naturally, are encouraging but honest, and give actionable advice.
+    const name = user.name ? user.name.split(' ')[0] : 'Student';
+    const exam = user.exam || 'General Studies';
+
+    // Check if Gemini is configured. If yes, use real Gemini
+    if (geminiAI) {
+      const subjectsStr = subjectList.map(s => `${s.name}: ${s.done}/${s.total} done (${s.pct}%)`).join('; ');
+      const goalsStr = activeGoals.join('; ');
+      const systemPrompt = `You are an intelligent AI study assistant inside "Progress Record" — a productivity app for students. You speak naturally, are encouraging but honest, and give actionable advice.
 
 USER CONTEXT:
-- Name: ${user.name}
-- Exam: ${user.exam || 'General'}
-- Subjects: ${subjects || 'None added yet'}
+- Name: ${name}
+- Exam: ${exam}
+- Subjects: ${subjectsStr || 'None added yet'}
 - Focus Sessions: ${focusSessions.length} total (${Math.round(totalFocusMin / 60 * 10) / 10} hours)
-- Active Goals: ${activeGoals || 'None set'}
+- Active Goals: ${goalsStr || 'None set'}
 
 RULES:
 - Keep responses concise (2-4 sentences max unless asked for detail)
@@ -919,26 +922,83 @@ RULES:
 - Use the user's name sometimes
 - If asked about something outside study/productivity, politely redirect`;
 
-    const model = geminiAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    
-    // Build chat history
-    const chatHistory = (history || []).slice(-10).map(h => ({
-      role: h.role === 'user' ? 'user' : 'model',
-      parts: [{ text: h.content }]
-    }));
+      const model = geminiAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const chatHistory = (history || []).slice(-10).map(h => ({
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: [{ text: h.content }]
+      }));
 
-    const chat = model.startChat({
-      history: chatHistory,
-      systemInstruction: systemPrompt,
-    });
+      const chat = model.startChat({
+        history: chatHistory,
+        systemInstruction: systemPrompt,
+      });
 
-    const result = await chat.sendMessage(message);
-    const response = result.response.text();
+      const result = await chat.sendMessage(message);
+      return res.json({ reply: result.response.text() });
+    }
 
-    res.json({ reply: response });
+    // --- SMART LOCAL AI FALLBACK ENGINE (Runs instantly without API Key) ---
+    const msgLower = message.toLowerCase();
+    let reply = "";
+
+    // 1. Weakest Subject analysis
+    const weakest = [...subjectList].sort((a, b) => a.pct - b.pct)[0];
+
+    if (msgLower.includes('weak') || msgLower.includes('analyze') || msgLower.includes('subject') || msgLower.includes('attention')) {
+      if (subjectList.length === 0) {
+        reply = `Hey ${name}, you haven't added any subjects to your Progress Record yet! Once you add subjects and topics, I'll be able to pinpoint exactly which areas need your attention. Go ahead and set them up in the Subjects panel!`;
+      } else if (weakest && weakest.pct < 50) {
+        reply = `I've analyzed your progress, ${name}. **${weakest.name}** is currently at only **${weakest.pct}% completion**, making it your weakest link. I recommend scheduling a 45-minute Deep Focus session today focusing solely on completing 1 topic in ${weakest.name} to build momentum.`;
+      } else {
+        reply = `Your subjects are in great shape, ${name}! All of them have over 50% completion. Keep maintaining this balanced study routine and review your highest priority topics daily.`;
+      }
+    }
+    // 2. Study Plan / Today's Routine
+    else if (msgLower.includes('plan') || msgLower.includes('today') || msgLower.includes('schedule') || msgLower.includes('routine')) {
+      if (subjectList.length === 0) {
+        reply = `Let's build a foundation first! Add your active subjects in the panel, then I can generate a tailored daily routine for your ${exam} preparation.`;
+      } else {
+        const topSub = subjectList[0].name;
+        const secondSub = subjectList[1] ? subjectList[1].name : 'your notes review';
+        reply = `Here is your customized focus blueprint for today, ${name}:
+- **09:00 AM - 10:30 AM**: High-intensity study block for **${topSub}** (Goal: Complete 1 full topic).
+- **11:00 AM - 12:00 PM**: Active recall & flashcard session on **${secondSub}**.
+- **04:00 PM**: Review any pending goals or update your Notes Vault. Keep sessions limited to 45 mins with 5-min breaks!`;
+      }
+    }
+    // 3. Motivation
+    else if (msgLower.includes('motivate') || msgLower.includes('motivation') || msgLower.includes('lazy') || msgLower.includes('bored') || msgLower.includes('tired')) {
+      const motivationalQuotes = [
+        `Hey ${name}, remember why you started this journey. Success isn't about being perfect; it's about being consistent. Push through the inertia and start just a 15-minute timer right now. Once you begin, momentum will take over!`,
+        `Don't limit your challenges, ${name}; challenge your limits! Every focus session you complete is a vote for the person you want to become. You have already completed ${focusSessions.length} sessions, showing you have the discipline. Let's add one more today!`,
+        `Discipline is choosing between what you want now and what you want most. Your ${exam} goals are waiting for you. Get up, clear your desk, put your phone in another room, and let's get 25 minutes of deep focus. You've got this!`
+      ];
+      reply = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+    }
+    // 4. Focus Tips
+    else if (msgLower.includes('focus') || msgLower.includes('pomodoro') || msgLower.includes('distract') || msgLower.includes('attention span')) {
+      reply = `To achieve peak cognitive performance, ${name}, try this:
+1. **The 2-Minute Rule**: If starting feels hard, commit to studying for just 2 minutes. Usually, you'll want to continue.
+2. **Environment Design**: Put your phone out of sight. Visual distraction drains active willpower.
+3. Use our built-in **Focus Mode** for structured intervals (45 mins work, 5 mins break) to prevent cognitive fatigue.`;
+    }
+    // 5. App features / general guide
+    else if (msgLower.includes('hello') || msgLower.includes('hi ') || msgLower.includes('hey') || msgLower.includes('help') || msgLower.includes('who are you')) {
+      reply = `Hello ${name}! I am your AI Productivity Companion. I track your focus trends (${Math.round(totalFocusMin / 60 * 10) / 10} hours logged so far) and subject completion levels. Ask me to 'analyze my weak areas', 'make a study plan for today', or for some 'motivation'!`;
+    }
+    // 6. Generic Fallback
+    else {
+      if (subjectList.length > 0) {
+        reply = `That is an interesting question, ${name}. Looking at your current status in **${exam}** prep, you have already made progress on **${subjectList.length} subjects** with **${focusSessions.length} deep focus sessions**. Let's stay focused on finishing your remaining topics! Try asking me for a 'study plan' or 'weak subject analysis'.`;
+      } else {
+        reply = `I am here to help you conquer your goals, ${name}! Try adding a few subjects in the sidebar menu first. Once you log some study sessions, I can give you precise feedback and tailored recommendations.`;
+      }
+    }
+
+    res.json({ reply });
   } catch (e) {
-    console.error('AI chat error:', e);
-    res.status(500).json({ message: 'AI is temporarily unavailable. Try again.' });
+    console.error('AI chat fallback error:', e);
+    res.status(500).json({ message: 'AI is temporarily offline.' });
   }
 });
 
