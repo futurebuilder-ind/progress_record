@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import API from '../api/axios';
-import { Zap, TrendingUp, BookOpen, Target, Flame, Clock, Trophy, Brain, Sparkles, Activity } from 'lucide-react';
+import { Zap, TrendingUp, BookOpen, Target, Flame, Clock, Trophy, Brain, Sparkles, Activity, Users } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const QUOTES = [
@@ -78,6 +78,7 @@ export default function Dashboard() {
   const radarData = analytics?.subjectMastery?.slice(0, 6).map(s => ({ subject: s.name.substring(0, 8), mastery: s.mastery })) ?? [];
   const consistency = analytics?.consistency ?? 0;
   const focusSessions = analytics?.totalFocusSessions ?? 0;
+  const activeUsers = analytics?.totalActiveUsers ?? 0;
 
   if (loading) {
     return (
@@ -108,6 +109,15 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-4">
+          <div className="glass-card rounded-2xl px-6 py-4 flex items-center gap-4 border-l-2 border-l-white">
+            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+              <Users size={24} className="text-white" />
+            </div>
+            <div>
+              <div className="text-white font-black text-2xl font-orbitron tracking-widest leading-none">{activeUsers}</div>
+              <div className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-1">Active Users</div>
+            </div>
+          </div>
           <div className="glass-card rounded-2xl px-6 py-4 flex items-center gap-4 border-l-2 border-l-white">
             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
               <Flame size={24} className="text-white animate-pulse" />

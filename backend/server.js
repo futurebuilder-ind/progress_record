@@ -499,6 +499,7 @@ app.get("/analytics", auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const user = await User.findById(userId).lean();
+    const totalActiveUsers = await User.countDocuments();
 
     let totalTopics = 0, completedTopics = 0, totalTasks = 0, completedTasks = 0;
     const subjectMastery = [];
@@ -631,6 +632,7 @@ app.get("/analytics", auth, async (req, res) => {
       totalFocusMinutes,
       totalFocusSessions: focusSessions.length,
       todayFocusSessions: todayFocus.length,
+      totalActiveUsers,
       subjectMastery,
       weeklyData: last7,
       completionTrend,
