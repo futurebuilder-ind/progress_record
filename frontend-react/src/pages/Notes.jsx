@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, Trash2, X, Save, Search, Pin, PinOff, Tag } from 'lucide-react';
+import { FileText, Plus, Trash2, X, Save, Search, Pin, PinOff, Tag, UploadCloud } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import API from '../api/axios';
@@ -143,6 +143,32 @@ export default function Notes() {
     } catch { toast.error('Failed'); }
   };
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      try {
+        const payload = {
+          title: file.name.split('.')[0] || 'Uploaded Note',
+          body: text,
+          tags: ['imported'],
+          color: '#1e293b'
+        };
+        const { data } = await API.post('/notes', payload);
+        setNotes(n => [data.note, ...n]);
+        toast.success(`File "${file.name}" uploaded successfully! 🚀`);
+      } catch {
+        toast.error('Failed to save uploaded file as note.');
+      }
+    };
+    reader.onerror = () => toast.error('Failed to read file from system.');
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  };
+
   const filtered = notes.filter(n =>
     n.title.toLowerCase().includes(search.toLowerCase()) ||
     (n.body || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -160,10 +186,16 @@ export default function Notes() {
           <h1 className="text-3xl font-black text-white">Notes Vault</h1>
           <p className="text-slate-400 text-sm mt-1">{notes.length} note{notes.length !== 1 ? 's' : ''} saved</p>
         </div>
-        <motion.button whileTap={{ scale: 0.96 }} onClick={() => setEditing('new')}
-          className="btn-neon px-5 py-2.5 rounded-xl text-white font-bold flex items-center gap-2">
-          <Plus size={18}/> New Note
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold flex items-center gap-2 hover:bg-white/10 transition-all text-sm">
+            <UploadCloud size={16} /> Import File
+            <input type="file" accept=".txt,.md,.csv,.json,.js,.py,.html,.css" className="hidden" onChange={handleFileUpload} />
+          </label>
+          <motion.button whileTap={{ scale: 0.96 }} onClick={() => setEditing('new')}
+            className="btn-neon px-5 py-2.5 rounded-xl text-white font-bold flex items-center gap-2 text-sm">
+            <Plus size={16}/> New Note
+          </motion.button>
+        </div>
       </div>
 
       <div className="relative">
