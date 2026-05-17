@@ -77,7 +77,11 @@ export default function DashboardLayout() {
       <div className={`p-4 border-b border-white/5 ${isCollapsed && !isMobile ? 'flex justify-center' : ''}`}>
         <div className={`flex items-center gap-3 p-3 rounded-2xl bg-[#050505] border border-white/5 ${isCollapsed && !isMobile ? 'w-fit' : 'w-full'} group hover:border-white/20 transition-all cursor-pointer`}>
           <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-black font-black text-sm flex-shrink-0 relative overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-            <span className="relative z-10">{user?.name?.charAt(0).toUpperCase()}</span>
+            {user?.profilePic ? (
+              <img src={user.profilePic} className="w-full h-full object-cover relative z-10" alt="Avatar" />
+            ) : (
+              <span className="relative z-10">{user?.name?.charAt(0).toUpperCase()}</span>
+            )}
           </div>
           {(!isCollapsed || isMobile) && (
             <div className="overflow-hidden">
@@ -178,17 +182,44 @@ export default function DashboardLayout() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10 bg-[#000000]">
+        {/* Desktop Glowing Developer Signature */}
+        <div className="hidden lg:flex items-center gap-2 absolute top-6 right-8 z-30 px-3.5 py-1.5 rounded-full bg-[#050505]/80 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)] backdrop-blur-md transition-all hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] group select-none">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-slate-400 group-hover:text-white transition-colors text-[9px] font-black tracking-[0.2em] uppercase font-['Orbitron']">
+            ENGINEERED BY <span className="text-emerald-400 font-black">AVEE RANJAN</span>
+          </span>
+        </div>
+
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#000000]/80 backdrop-blur-md sticky top-0 z-30">
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-xl bg-[#050505] border border-white/5 text-slate-400 hover:text-white">
             <Menu size={20} />
           </button>
-          <div className="flex items-center gap-2">
-            <Brain size={18} className="text-white" />
-            <span className="text-white font-black text-sm font-orbitron tracking-widest">PR<span className="text-slate-500">.</span></span>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1.5">
+              <Brain size={14} className="text-white" />
+              <span className="text-white font-black text-xs font-orbitron tracking-widest">PR<span className="text-slate-500">.</span></span>
+            </div>
+            {/* Glowing developer signature for mobile */}
+            <div className="flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full bg-emerald-500/5 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.1)]">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-slate-400 text-[7px] font-bold tracking-[0.1em] uppercase font-['Orbitron']">
+                ENGINEERED BY <span className="text-emerald-400 font-extrabold">AVEE RANJAN</span>
+              </span>
+            </div>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-black text-xs font-black border border-white/10 shadow-lg">
-            {user?.name?.charAt(0).toUpperCase()}
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-black text-xs font-black border border-white/10 shadow-lg overflow-hidden flex-shrink-0">
+            {user?.profilePic ? (
+              <img src={user.profilePic} className="w-full h-full object-cover" alt="Avatar" />
+            ) : (
+              user?.name?.charAt(0).toUpperCase()
+            )}
           </div>
         </div>
 

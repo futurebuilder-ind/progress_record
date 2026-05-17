@@ -23,6 +23,11 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
 
+    profilePic: {
+        type: String,
+        default: ''
+    },
+
     themeSettings: {
         bgColor: { type: String, default: '#030712' },
         fontFamily: { type: String, default: "'Outfit', sans-serif" },

@@ -64,7 +64,7 @@ app.post("/auth/signup", async (req, res) => {
     const user = await User.create({ name: name.trim(), email: email.trim().toLowerCase(), password: hashed, exam: examType || "Other" });
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || "progress_secret_key", { expiresIn: "30d" });
-    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, examType: user.exam } });
+    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, examType: user.exam, profilePic: user.profilePic || '' } });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -79,7 +79,7 @@ app.post("/auth/login", async (req, res) => {
     if (!match) return res.status(401).json({ message: "Incorrect password" });
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || "progress_secret_key", { expiresIn: "30d" });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, examType: user.exam } });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, examType: user.exam, profilePic: user.profilePic || '' } });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -674,13 +674,46 @@ app.get("/analytics", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-/* ── Settings (Theme) ── */
+/* ── Settings (Profile & Theme) ── */
 app.put("/settings", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    user.themeSettings = { ...user.themeSettings, ...req.body };
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Handle profile updates
+    if (req.body.displayName !== undefined) {
+      user.name = req.body.displayName.trim();
+    }
+    if (req.body.examType !== undefined) {
+      user.exam = req.body.examType;
+    }
+    if (req.body.profilePic !== undefined) {
+      user.profilePic = req.body.profilePic;
+    }
+
+    // Handle theme/appearance updates
+    if (req.body.bgColor !== undefined) {
+      user.themeSettings.bgColor = req.body.bgColor;
+    }
+    if (req.body.fontFamily !== undefined) {
+      user.themeSettings.fontFamily = req.body.fontFamily;
+    }
+    if (req.body.chartType !== undefined) {
+      user.themeSettings.chartType = req.body.chartType;
+    }
+
     await user.save();
-    res.json({ themeSettings: user.themeSettings });
+    res.json({
+      message: "Settings updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        examType: user.exam,
+        profilePic: user.profilePic || '',
+        themeSettings: user.themeSettings
+      }
+    });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
