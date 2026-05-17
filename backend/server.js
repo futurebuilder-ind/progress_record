@@ -455,41 +455,14 @@ app.get("/leaderboard", auth, async (req, res) => {
       };
     });
 
-    // 4. Define premium virtual competitors as benchmarks to merge
-    const virtualCompetitors = [
-      { name: 'Arjun Sharma', exam: 'GATE', hours: 312, streak: 45, score: 98, avatar: 'A' },
-      { name: 'Priya Verma', exam: 'NEET', hours: 290, streak: 38, score: 95, avatar: 'P' },
-      { name: 'Rohit Kumar', exam: 'JEE', hours: 240, streak: 30, score: 92, avatar: 'R' },
-      { name: 'Sneha Rao', exam: 'UPSC', hours: 180, streak: 28, score: 89, avatar: 'S' },
-      { name: 'Dev Patel', exam: 'CAT', hours: 120, streak: 22, score: 86, avatar: 'D' },
-      { name: 'Anita Singh', exam: 'SSC', hours: 80, streak: 20, score: 82, avatar: 'An' },
-    ];
-
-    // Filter out virtual competitors whose name EXACTLY matches a real user's name
-    const realNames = new Set(realUsersData.map(u => u.name.trim().toLowerCase()));
-    const filteredVirtuals = virtualCompetitors.filter(vc => !realNames.has(vc.name.trim().toLowerCase()));
-
-    // Merge real database users and virtual competitors
-    const mergedList = [...realUsersData, ...filteredVirtuals.map((vc, i) => ({
-      _id: `virtual_${i}`,
-      name: vc.name,
-      exam: vc.exam,
-      hours: vc.hours,
-      streak: vc.streak,
-      score: vc.score,
-      avatar: vc.avatar,
-      isMe: false,
-      profilePic: '',
-    }))];
-
     // Sort by hours (primary) and score (secondary) descending
-    mergedList.sort((a, b) => {
+    realUsersData.sort((a, b) => {
       if (b.hours !== a.hours) return b.hours - a.hours;
       return b.score - a.score;
     });
 
     // Map rank to sorted list
-    const finalLeaderboard = mergedList.map((user, idx) => ({
+    const finalLeaderboard = realUsersData.map((user, idx) => ({
       ...user,
       rank: idx + 1
     }));
