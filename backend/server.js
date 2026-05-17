@@ -428,11 +428,60 @@ app.post("/feedback", auth, async (req, res) => {
 app.get("/feedback", async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== (process.env.ADMIN_KEY || 'avee_admin_2026')) {
+    if (adminKey !== (process.env.ADMIN_KEY || 'avee123@')) {
       return res.status(403).json({ message: "Forbidden" });
     }
     const feedbacks = await Feedback.find().sort({ createdAt: -1 });
     res.json({ feedbacks });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* Delete feedback (admin) */
+app.delete("/feedback/:id", async (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== (process.env.ADMIN_KEY || 'avee123@')) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    await Feedback.findByIdAndDelete(req.params.id);
+    res.json({ message: "Deleted successfully" });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* Admin Stats Route */
+app.get("/admin/stats", async (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== (process.env.ADMIN_KEY || 'avee123@')) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const totalUsers = await User.countDocuments();
+    const totalFeedback = await Feedback.countDocuments();
+    const sessions = await Session.find({ type: 'focus' }).lean();
+    const totalFocusMinutes = sessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+    
+    // Estimate total tasks completed across all users
+    const users = await User.find().lean();
+    let totalTasksCompleted = 0;
+    users.forEach(user => {
+      (user.subjects || []).forEach(sub => {
+        (sub.topics || []).forEach(t => {
+          (t.subtopics || []).forEach(st => {
+            (st.tasks || []).forEach(task => {
+              if (task.completed) totalTasksCompleted++;
+            });
+          });
+        });
+      });
+    });
+
+    res.json({ 
+      totalUsers, 
+      totalFeedback, 
+      totalFocusSessions: sessions.length, 
+      totalFocusMinutes, 
+      totalTasksCompleted 
+    });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -523,10 +572,40 @@ app.get("/analytics", auth, async (req, res) => {
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const todayFocus = focusSessions.filter(s => new Date(s.date) >= todayStart);
 
+    // Calculate Consistency (Daily Streak of focus sessions)
+    let consistency = 0;
+    if (focusSessions.length > 0) {
+      // Get unique dates sorted descending
+      const uniqueDates = [...new Set(focusSessions.map(s => {
+        const d = new Date(s.date);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      }))].sort((a, b) => b - a);
+
+      let currentCheckTime = new Date(todayStart).getTime();
+      
+      // If user hasn't studied today, check if they studied yesterday. 
+      // If not yesterday either, streak is 0.
+      if (!uniqueDates.includes(currentCheckTime)) {
+        currentCheckTime -= 86400000; // yesterday
+      }
+
+      if (uniqueDates.includes(currentCheckTime)) {
+        consistency = 1;
+        let nextExpected = currentCheckTime - 86400000;
+        for (let i = uniqueDates.indexOf(currentCheckTime) + 1; i < uniqueDates.length; i++) {
+          if (uniqueDates[i] === nextExpected) {
+            consistency++;
+            nextExpected -= 86400000;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
     const overallMastery = subjectMastery.length > 0
       ? Math.round(subjectMastery.reduce((a, s) => a + s.mastery, 0) / subjectMastery.length)
       : 0;
-    const consistency = focusSessions.length > 0 ? Math.min(100, Math.round((focusSessions.length / 14) * 100)) : 0;
     const productivityScore = Math.round(consistency * 0.4 + overallMastery * 0.4 + avgGoalPct * 0.2);
 
     res.json({

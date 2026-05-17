@@ -43,21 +43,21 @@ export default function DashboardLayout() {
   };
 
   const SidebarContent = ({ isMobile }) => (
-    <div className="flex flex-col h-full bg-[#050816]/80 backdrop-blur-3xl relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#000000] relative overflow-hidden">
       {/* Background flare inside sidebar */}
-      <div className="absolute top-0 left-0 w-full h-32 bg-blue-600/5 blur-[50px] pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-full h-32 bg-white/5 blur-[50px] pointer-events-none"></div>
 
       {/* Brand */}
       <div className={`p-6 border-b border-white/5 flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'justify-between'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#0a0f25] border border-blue-500/30 flex items-center justify-center neon-glow-blue flex-shrink-0 relative">
-            <div className="absolute inset-0 cyber-scanline rounded-2xl"></div>
-            <Brain size={20} className="text-blue-400 relative z-10" />
+          <div className="w-10 h-10 rounded-xl bg-[#050505] border border-white/10 flex items-center justify-center relative">
+            <div className="absolute inset-0 cyber-scanline rounded-xl"></div>
+            <Brain size={20} className="text-white relative z-10" />
           </div>
           {(!isCollapsed || isMobile) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="text-white font-black text-[15px] font-orbitron tracking-widest leading-tight">PROGRESS</div>
-              <div className="text-blue-500 font-black text-[13px] font-orbitron tracking-widest leading-tight">RECORD</div>
+              <div className="text-slate-500 font-black text-[13px] font-orbitron tracking-widest leading-tight">RECORD</div>
             </motion.div>
           )}
         </div>
@@ -65,7 +65,7 @@ export default function DashboardLayout() {
         {!isMobile && (
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-slate-500 hover:text-white transition-colors p-1"
+            className="text-slate-600 hover:text-white transition-colors p-1"
           >
             {isCollapsed ? <Menu size={18} /> : <ChevronRight size={18} className="rotate-180" />}
           </button>
@@ -74,16 +74,15 @@ export default function DashboardLayout() {
 
       {/* User Info */}
       <div className={`p-4 border-b border-white/5 ${isCollapsed && !isMobile ? 'flex justify-center' : ''}`}>
-        <div className={`flex items-center gap-3 p-3 rounded-2xl bg-[#0a0f25]/50 border border-white/5 ${isCollapsed && !isMobile ? 'w-fit' : 'w-full'} group hover:border-blue-500/30 transition-all cursor-pointer`}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 relative overflow-hidden shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]"></div>
+        <div className={`flex items-center gap-3 p-3 rounded-2xl bg-[#050505] border border-white/5 ${isCollapsed && !isMobile ? 'w-fit' : 'w-full'} group hover:border-white/20 transition-all cursor-pointer`}>
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-black font-black text-sm flex-shrink-0 relative overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)]">
             <span className="relative z-10">{user?.name?.charAt(0).toUpperCase()}</span>
           </div>
           {(!isCollapsed || isMobile) && (
             <div className="overflow-hidden">
-              <div className="text-white font-bold text-sm truncate">{user?.name}</div>
-              <div className="text-blue-400 text-[11px] font-mono tracking-widest uppercase truncate flex items-center gap-1">
-                <Zap size={10} /> {user?.examType || 'OPERATOR'}
+              <div className="text-white font-bold text-sm truncate tracking-tight">{user?.name}</div>
+              <div className="text-slate-500 text-[10px] font-mono tracking-widest uppercase truncate flex items-center gap-1">
+                <Zap size={10} className="text-blue-400" /> {user?.examType || 'OPERATOR'}
               </div>
             </div>
           )}
@@ -92,7 +91,7 @@ export default function DashboardLayout() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-        <div className={`text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-3 ${isCollapsed && !isMobile ? 'text-center' : ''}`}>
+        <div className={`text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-4 px-3 ${isCollapsed && !isMobile ? 'text-center' : ''}`}>
           {isCollapsed && !isMobile ? '---' : 'System Modules'}
         </div>
         {navItems.map(({ to, icon: Icon, label }) => (
@@ -100,21 +99,21 @@ export default function DashboardLayout() {
             className={({ isActive }) =>
               `flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-xl text-sm font-medium transition-all group relative overflow-hidden ${
                 isActive
-                  ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  ? 'bg-white/5 text-white border border-white/10'
+                  : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'
               }`
             }
           >
             {({ isActive }) => (
               <>
                 {isActive && (
-                  <motion.div layoutId="activeNav" className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+                  <motion.div layoutId="activeNav" className="absolute left-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
                 )}
-                <Icon size={isCollapsed && !isMobile ? 22 : 18} className={`${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors relative z-10`} />
+                <Icon size={isCollapsed && !isMobile ? 22 : 18} className={`${isActive ? 'text-white' : 'text-slate-600 group-hover:text-white'} transition-colors relative z-10`} />
                 {(!isCollapsed || isMobile) && (
                   <span className="relative z-10 font-['Space_Grotesk'] tracking-wide">{label}</span>
                 )}
-                {(!isCollapsed || isMobile) && isActive && <ChevronRight size={14} className="ml-auto text-blue-400 relative z-10" />}
+                {(!isCollapsed || isMobile) && isActive && <ChevronRight size={14} className="ml-auto text-slate-500 relative z-10" />}
               </>
             )}
           </NavLink>
@@ -126,16 +125,16 @@ export default function DashboardLayout() {
         <NavLink to="/settings" onClick={() => setSidebarOpen(false)}
           className={({ isActive }) =>
             `flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-xl text-sm font-medium transition-all group ${
-              isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              isActive ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'
             }`
           }
         >
           <Settings size={isCollapsed && !isMobile ? 22 : 18} className="group-hover:rotate-90 transition-transform duration-500" />
-          {(!isCollapsed || isMobile) && <span>Settings</span>}
+          {(!isCollapsed || isMobile) && <span>System Settings</span>}
         </NavLink>
         
         <button onClick={handleLogout}
-          className={`flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'gap-3 px-4'} w-full py-3 rounded-xl text-sm font-medium text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-all group`}>
+          className={`flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'gap-3 px-4'} w-full py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-white/5 hover:text-white transition-all group`}>
           <LogOut size={isCollapsed && !isMobile ? 22 : 18} className="group-hover:-translate-x-1 transition-transform" /> 
           {(!isCollapsed || isMobile) && <span>Disconnect</span>}
         </button>
@@ -144,10 +143,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#050816] font-['Space_Grotesk']">
-      {/* Background ambient noise */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.02] mix-blend-overlay bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')]"></div>
-
+    <div className="flex h-screen overflow-hidden bg-[#000000] font-['Space_Grotesk']">
       {/* Desktop Sidebar */}
       <motion.aside 
         animate={{ width: isCollapsed ? 80 : 280 }}
@@ -162,12 +158,12 @@ export default function DashboardLayout() {
         {sidebarOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-[#050816]/80 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-[#000000]/80 backdrop-blur-md z-40 lg:hidden"
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 h-full w-72 z-50 lg:hidden border-r border-white/5 shadow-2xl">
+              className="fixed left-0 top-0 h-full w-72 z-50 lg:hidden border-r border-white/5 shadow-2xl bg-[#000000]">
               <div className="absolute top-4 right-4 z-50">
                 <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white border border-white/10">
                   <X size={18} />
@@ -180,26 +176,23 @@ export default function DashboardLayout() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10 bg-[#000000]">
         {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#050816]/80 backdrop-blur-md sticky top-0 z-30">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-xl bg-[#0a0f25] border border-white/5 text-slate-400 hover:text-white">
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#000000]/80 backdrop-blur-md sticky top-0 z-30">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-xl bg-[#050505] border border-white/5 text-slate-400 hover:text-white">
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2">
-            <Brain size={18} className="text-blue-500" />
-            <span className="text-white font-black text-sm font-orbitron tracking-widest">PR<span className="text-blue-500">.</span></span>
+            <Brain size={18} className="text-white" />
+            <span className="text-white font-black text-sm font-orbitron tracking-widest">PR<span className="text-slate-500">.</span></span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold border border-white/10 shadow-lg">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-black text-xs font-black border border-white/10 shadow-lg">
             {user?.name?.charAt(0).toUpperCase()}
           </div>
         </div>
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar relative">
-          {/* Subtle page glow */}
-          <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-blue-500/5 blur-[100px] pointer-events-none -z-10 rounded-full"></div>
-          
           <AnimatePresence mode="wait">
             <motion.div 
               key={location.pathname} 
