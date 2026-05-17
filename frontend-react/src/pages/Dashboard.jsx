@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import API from '../api/axios';
-import { Zap, TrendingUp, BookOpen, Target, Flame, Clock, Trophy, Brain, Sparkles, Activity, Users } from 'lucide-react';
+import { Zap, TrendingUp, BookOpen, Target, Flame, Clock, Trophy, Brain, Sparkles, Activity, Users, Lightbulb } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const QUOTES = [
@@ -54,13 +54,18 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function Dashboard() {
   const { user } = useAuth();
   const [analytics, setAnalytics] = useState(null);
+  const [aiInsights, setAiInsights] = useState(null);
   const [quote] = useState(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
   const [loading, setLoading] = useState(true);
 
   const fetchAnalytics = useCallback(async () => {
     try {
-      const { data } = await API.get('/analytics');
-      setAnalytics(data);
+      const [analyticsRes, insightsRes] = await Promise.all([
+        API.get('/analytics'),
+        API.get('/ai/insights').catch(() => ({ data: null }))
+      ]);
+      setAnalytics(analyticsRes.data);
+      if (insightsRes.data) setAiInsights(insightsRes.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -213,58 +218,85 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* AI Insight Panel */}
+        {/* AI Insights Panel */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.5 }}
           className="lg:col-span-3 glass-card rounded-3xl p-6 md:p-8 relative overflow-hidden border-t border-t-white/10">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDIiLz4KPC9zdmc+')] opacity-20 pointer-events-none"></div>
           
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            <div className="md:col-span-4 lg:col-span-4">
-              <div className="flex items-center gap-3 mb-6">
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
-                  <Sparkles size={16} className="text-white" />
+                  <Lightbulb size={16} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold text-lg tracking-tight">Quick Insights</h3>
-                  <p className="text-slate-500 text-xs mt-0.5">Your study performance summary</p>
+                  <h3 className="text-white font-semibold text-lg tracking-tight">AI Insights</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Personalized recommendations</p>
                 </div>
               </div>
-              
-              <div className="p-5 rounded-2xl bg-[#050505] border border-white/5">
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  {mastery === 0 && totalTasks === 0
-                    ? 'Start by adding subjects and completing tasks to see your performance insights here.'
-                    : mastery >= 70
-                    ? `Great work! You\'re at ${mastery}% mastery with ${completedTasks} tasks completed. Keep this momentum going.`
-                    : `You have ${totalTasks - completedTasks} tasks remaining. Focus on completing them to improve your ${mastery}% mastery score.`}
-                </p>
-              </div>
+              {aiInsights?.stats?.efficiencyScore != null && (
+                <div className="text-right">
+                  <div className="text-2xl font-black text-white tracking-tight">{aiInsights.stats.efficiencyScore}</div>
+                  <div className="text-slate-500 text-[10px] uppercase tracking-wider font-medium">Efficiency</div>
+                </div>
+              )}
             </div>
 
-            {/* Micro Stats */}
-            <div className="md:col-span-8 lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: 'Consistency', value: `${consistency} D` },
-                { label: 'Task Ratio', value: totalTasks > 0 ? `${Math.round(completedTasks / totalTasks * 100)}%` : '0%' },
-                { label: 'Goal Progress', value: analytics?.goals?.avgProgress != null ? `${analytics.goals.avgProgress}%` : '0%' },
-              ].map((item, idx) => (
-                <div key={item.label} className="p-6 rounded-2xl bg-[#0a0a0a] border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-center relative overflow-hidden group">
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/5 to-transparent pointer-events-none`}></div>
-                  <div className="text-4xl font-black mb-2 text-white tracking-tight">{item.value}</div>
-                  <div className="text-slate-500 text-[11px] font-semibold uppercase tracking-wide mb-4">{item.label}</div>
-                  
-                  {/* Decorative minimalist progress bar */}
-                  <div className="w-full h-[2px] bg-[#000000] overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }} 
-                      animate={{ width: item.value.replace(/[^0-9.]/g, '') + '%' }} 
-                      transition={{ duration: 1, delay: 0.8 + (idx * 0.2) }}
-                      className="h-full bg-white"
-                    />
+            {/* Insights Grid */}
+            {aiInsights?.insights?.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {aiInsights.insights.map((insight, idx) => (
+                  <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 + idx * 0.1 }}
+                    className={`p-4 rounded-2xl border transition-colors group hover:border-white/10 ${
+                      insight.priority === 'warning' ? 'bg-amber-500/5 border-amber-500/10' :
+                      insight.priority === 'success' ? 'bg-emerald-500/5 border-emerald-500/10' :
+                      insight.priority === 'high' ? 'bg-blue-500/5 border-blue-500/10' :
+                      'bg-[#0a0a0a] border-white/5'
+                    }`}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg flex-shrink-0 mt-0.5">{insight.icon}</span>
+                      <div className="min-w-0">
+                        <h4 className="text-white font-semibold text-sm mb-1">{insight.title}</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">{insight.message}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                <div className="md:col-span-4">
+                  <div className="p-5 rounded-2xl bg-[#050505] border border-white/5">
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      {mastery === 0 && totalTasks === 0
+                        ? 'Start by adding subjects and completing tasks to see your AI-powered insights here.'
+                        : mastery >= 70
+                        ? `Great work! You're at ${mastery}% mastery with ${completedTasks} tasks completed. Keep this momentum going.`
+                        : `You have ${totalTasks - completedTasks} tasks remaining. Focus on completing them to improve your ${mastery}% mastery score.`}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { label: 'Consistency', value: `${consistency}d` },
+                    { label: 'Task Ratio', value: totalTasks > 0 ? `${Math.round(completedTasks / totalTasks * 100)}%` : '0%' },
+                    { label: 'Goal Progress', value: analytics?.goals?.avgProgress != null ? `${analytics.goals.avgProgress}%` : '0%' },
+                  ].map((item, idx) => (
+                    <div key={item.label} className="p-6 rounded-2xl bg-[#0a0a0a] border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-center relative overflow-hidden group">
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+                      <div className="text-4xl font-black mb-2 text-white tracking-tight">{item.value}</div>
+                      <div className="text-slate-500 text-[11px] font-semibold uppercase tracking-wide mb-4">{item.label}</div>
+                      <div className="w-full h-[2px] bg-[#000000] overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: item.value.replace(/[^0-9.]/g, '') + '%' }}
+                          transition={{ duration: 1, delay: 0.8 + (idx * 0.2) }} className="h-full bg-white" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

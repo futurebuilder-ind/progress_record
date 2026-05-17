@@ -683,6 +683,192 @@ app.put("/settings", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+/* ── AI Productivity Brain ── */
+app.get("/ai/insights", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).lean();
+    const sessions = await Session.find({ userId }).lean();
+    const focusSessions = sessions.filter(s => s.type === 'focus');
+    const goals = await Goal.find({ userId }).lean();
+
+    const insights = [];
+    const now = new Date();
+
+    // 1. Best study hours analysis
+    const hourBuckets = {};
+    focusSessions.forEach(s => {
+      const hr = new Date(s.date).getHours();
+      hourBuckets[hr] = (hourBuckets[hr] || 0) + s.durationMinutes;
+    });
+    const bestHour = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0];
+    if (bestHour) {
+      const hr = parseInt(bestHour[0]);
+      const period = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+      insights.push({
+        type: 'best_time',
+        icon: '⏰',
+        title: 'Peak Performance Window',
+        message: `You're most productive in the ${period} around ${hr > 12 ? hr - 12 : hr}${hr >= 12 ? 'PM' : 'AM'}. Schedule important study sessions during this time.`,
+        priority: 'high'
+      });
+    }
+
+    // 2. Weak subjects
+    const subjectMastery = [];
+    (user.subjects || []).forEach(sub => {
+      let total = 0, done = 0;
+      (sub.topics || []).forEach(t => {
+        total++;
+        if (t.completed) done++;
+        (t.subtopics || []).forEach(st => {
+          total++;
+          if (st.completed) done++;
+        });
+      });
+      if (total > 0) subjectMastery.push({ name: sub.name, pct: Math.round(done / total * 100), total, done });
+    });
+    const weakest = subjectMastery.filter(s => s.pct < 40).sort((a, b) => a.pct - b.pct);
+    if (weakest.length > 0) {
+      insights.push({
+        type: 'weak_subject',
+        icon: '📚',
+        title: 'Needs Attention',
+        message: `${weakest[0].name} is at ${weakest[0].pct}% completion. Spend extra time here to improve your overall mastery.`,
+        priority: 'high'
+      });
+    }
+
+    // 3. Burnout detection
+    const last7Days = focusSessions.filter(s => (now - new Date(s.date)) < 7 * 86400000);
+    const totalMinsLast7 = last7Days.reduce((a, s) => a + s.durationMinutes, 0);
+    const avgDailyMins = Math.round(totalMinsLast7 / 7);
+    if (avgDailyMins > 300) {
+      insights.push({
+        type: 'burnout',
+        icon: '🔥',
+        title: 'Burnout Risk Detected',
+        message: `You've averaged ${avgDailyMins} min/day this week (${Math.round(totalMinsLast7 / 60)}h total). Take breaks to maintain long-term performance.`,
+        priority: 'warning'
+      });
+    } else if (avgDailyMins > 0) {
+      insights.push({
+        type: 'pace',
+        icon: '📊',
+        title: 'Study Pace',
+        message: `You're averaging ${avgDailyMins} min/day this week. ${avgDailyMins < 60 ? 'Try to increase to 1+ hour daily for better results.' : 'Great pace! Stay consistent.'}`,
+        priority: 'info'
+      });
+    }
+
+    // 4. Streak encouragement
+    let streak = 0;
+    const uniqueDates = [...new Set(focusSessions.map(s => {
+      const d = new Date(s.date);
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    }))].sort((a, b) => b - a);
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    let check = uniqueDates.includes(todayStart) ? todayStart : todayStart - 86400000;
+    if (uniqueDates.includes(check)) {
+      streak = 1;
+      let next = check - 86400000;
+      for (const d of uniqueDates) {
+        if (d === next) { streak++; next -= 86400000; }
+      }
+    }
+    if (streak >= 3) {
+      insights.push({
+        type: 'streak',
+        icon: '🔥',
+        title: `${streak}-Day Streak!`,
+        message: `You've been consistent for ${streak} days. Don't break the chain — keep the momentum going!`,
+        priority: 'success'
+      });
+    } else if (streak === 0 && focusSessions.length > 0) {
+      insights.push({
+        type: 'streak_broken',
+        icon: '⚡',
+        title: 'Restart Your Streak',
+        message: 'Your study streak has broken. Start a focus session today to get back on track.',
+        priority: 'warning'
+      });
+    }
+
+    // 5. Focus efficiency
+    const totalFocusMinutes = focusSessions.reduce((a, s) => a + s.durationMinutes, 0);
+    let totalCompleted = 0, totalItems = 0;
+    (user.subjects || []).forEach(sub => {
+      (sub.topics || []).forEach(t => {
+        totalItems++;
+        if (t.completed) totalCompleted++;
+        (t.subtopics || []).forEach(st => {
+          totalItems++;
+          if (st.completed) totalCompleted++;
+        });
+      });
+    });
+    const efficiencyScore = totalFocusMinutes > 0 && totalItems > 0
+      ? Math.min(100, Math.round((totalCompleted / totalItems) * 100 * (focusSessions.length / Math.max(1, totalItems)) * 2))
+      : 0;
+    insights.push({
+      type: 'efficiency',
+      icon: '⚙️',
+      title: 'Focus Efficiency',
+      message: `Your efficiency score is ${efficiencyScore}/100. ${efficiencyScore >= 70 ? 'Excellent output per session!' : 'Try working on fewer topics per session for better focus.'}`,
+      priority: efficiencyScore >= 70 ? 'success' : 'info'
+    });
+
+    // 6. Goal progress
+    const activeGoals = goals.filter(g => !g.completed);
+    const behindGoals = activeGoals.filter(g => {
+      const pct = g.target > 0 ? (g.current / g.target) * 100 : 0;
+      return pct < 50;
+    });
+    if (behindGoals.length > 0) {
+      insights.push({
+        type: 'goals',
+        icon: '🎯',
+        title: 'Goals Behind Schedule',
+        message: `${behindGoals.length} goal${behindGoals.length > 1 ? 's are' : ' is'} below 50% progress. Focus on these to stay on track.`,
+        priority: 'warning'
+      });
+    }
+
+    // 7. Daily tip
+    const tips = [
+      'Use the Pomodoro technique: 25 min focus, 5 min break.',
+      'Review completed topics weekly to strengthen long-term memory.',
+      'Start each day by reviewing what you learned yesterday.',
+      'Break large topics into smaller subtasks for steady progress.',
+      'Teach what you learn — it\'s the fastest way to master it.',
+      'Track your weak areas and allocate extra time for them.',
+      'Stay hydrated and take regular breaks for peak performance.',
+    ];
+    insights.push({
+      type: 'tip',
+      icon: '💡',
+      title: 'Daily Tip',
+      message: tips[now.getDate() % tips.length],
+      priority: 'info'
+    });
+
+    res.json({
+      insights: insights.slice(0, 6),
+      stats: {
+        efficiencyScore,
+        avgDailyMinutes: avgDailyMins || 0,
+        streak,
+        totalFocusHours: Math.round(totalFocusMinutes / 60 * 10) / 10,
+        bestHour: bestHour ? parseInt(bestHour[0]) : null,
+        weakSubject: weakest[0]?.name || null,
+      }
+    });
+  } catch (e) {
+    console.error('AI insights error:', e);
+    res.status(500).json({ message: e.message });
+  }
+});
+
 /* ── Health check ── */
 app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
