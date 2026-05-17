@@ -467,27 +467,57 @@ app.get("/admin/stats", async (req, res) => {
     const sessions = await Session.find({ type: 'focus' }).lean();
     const totalFocusMinutes = sessions.reduce((acc, s) => acc + s.durationMinutes, 0);
     
-    // Estimate total tasks completed across all users
-    const users = await User.find().lean();
+    // Get all users with activity details
+    const users = await User.find().select('-password').lean();
     let totalTasksCompleted = 0;
-    users.forEach(user => {
+    
+    const userList = await Promise.all(users.map(async (user) => {
+      let userTasks = 0, userCompleted = 0, userTopics = 0, userCompletedTopics = 0;
       (user.subjects || []).forEach(sub => {
         (sub.topics || []).forEach(t => {
+          userTopics++;
+          if (t.completed) userCompletedTopics++;
           (t.subtopics || []).forEach(st => {
+            userTasks++;
+            if (st.completed) userCompleted++;
             (st.tasks || []).forEach(task => {
-              if (task.completed) totalTasksCompleted++;
+              userTasks++;
+              if (task.completed) { userCompleted++; totalTasksCompleted++; }
             });
           });
         });
       });
-    });
+      
+      const userSessions = sessions.filter(s => s.userId?.toString() === user._id.toString());
+      const userFocusMinutes = userSessions.reduce((a, s) => a + s.durationMinutes, 0);
+      const lastSession = userSessions.length > 0 
+        ? userSessions.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date 
+        : null;
+
+      return {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        examType: user.exam || 'Other',
+        subjects: (user.subjects || []).length,
+        topics: userTopics,
+        completedTopics: userCompletedTopics,
+        tasks: userTasks,
+        completedTasks: userCompleted,
+        focusSessions: userSessions.length,
+        focusMinutes: userFocusMinutes,
+        lastActive: lastSession || user.updatedAt || user.createdAt,
+        joinedAt: user.createdAt,
+      };
+    }));
 
     res.json({ 
       totalUsers, 
       totalFeedback, 
       totalFocusSessions: sessions.length, 
       totalFocusMinutes, 
-      totalTasksCompleted 
+      totalTasksCompleted,
+      userList,
     });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
