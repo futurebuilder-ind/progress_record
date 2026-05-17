@@ -42,9 +42,9 @@ function App() {
         <Toaster
           position="top-right"
           toastOptions={{
-            style: { background: '#0f172a', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.1)' },
-            success: { iconTheme: { primary: '#22d3ee', secondary: '#030712' } },
-            error:   { iconTheme: { primary: '#f87171', secondary: '#030712' } },
+            style: { background: '#0A0A0A', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', fontSize: '13px', borderRadius: '12px' },
+            success: { iconTheme: { primary: '#22C55E', secondary: '#000' } },
+            error:   { iconTheme: { primary: '#EF4444', secondary: '#000' } },
           }}
         />
         <Routes>
