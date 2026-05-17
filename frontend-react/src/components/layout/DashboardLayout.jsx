@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, BookOpen, BarChart3, Timer, FileText,
   Target, Trophy, Settings, LogOut, Brain, Menu, X, ChevronRight, MessageSquare, ShieldCheck,
-  Zap
+  Zap, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { applyTheme } from '../../pages/Settings';
@@ -19,6 +19,7 @@ const navItems = [
   { to: '/goals',       icon: Target,           label: 'Goals'      },
   { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard'},
   { to: '/feedback',    icon: MessageSquare,    label: 'Feedback'   },
+  { to: '/ai-chat',     icon: Sparkles,         label: 'AI Assistant'},
   { to: '/feedback-admin', icon: ShieldCheck,    label: 'Admin Panel' },
 ];
 

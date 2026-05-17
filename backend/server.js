@@ -4,6 +4,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const User     = require("./models/User");
 const Goal     = require("./models/Goal");
@@ -866,6 +867,78 @@ app.get("/ai/insights", auth, async (req, res) => {
   } catch (e) {
     console.error('AI insights error:', e);
     res.status(500).json({ message: e.message });
+  }
+});
+
+/* ── AI Chat (Gemini) ── */
+const geminiAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
+
+app.post("/ai/chat", auth, async (req, res) => {
+  try {
+    if (!geminiAI) {
+      return res.status(503).json({ message: 'AI is not configured. Ask admin to add GEMINI_API_KEY.' });
+    }
+    
+    const { message, history } = req.body;
+    if (!message?.trim()) return res.status(400).json({ message: 'Message required' });
+
+    const userId = req.user.id;
+    const user = await User.findById(userId).lean();
+    const sessions = await Session.find({ userId }).sort({ date: -1 }).limit(50).lean();
+    const goals = await Goal.find({ userId }).lean();
+    const focusSessions = sessions.filter(s => s.type === 'focus');
+    const totalFocusMin = focusSessions.reduce((a, s) => a + s.durationMinutes, 0);
+
+    // Build user context
+    const subjects = (user.subjects || []).map(s => {
+      const topics = (s.topics || []);
+      const total = topics.length;
+      const done = topics.filter(t => t.completed).length;
+      return `${s.name}: ${done}/${total} topics done (${total > 0 ? Math.round(done/total*100) : 0}%)`;
+    }).join('; ');
+
+    const activeGoals = goals.filter(g => !g.completed).map(g => {
+      const pct = g.target > 0 ? Math.round(g.current / g.target * 100) : 0;
+      return `${g.title}: ${pct}% done`;
+    }).join('; ');
+
+    const systemPrompt = `You are an intelligent AI study assistant inside "Progress Record" — a productivity app for students. You speak naturally, are encouraging but honest, and give actionable advice.
+
+USER CONTEXT:
+- Name: ${user.name}
+- Exam: ${user.exam || 'General'}
+- Subjects: ${subjects || 'None added yet'}
+- Focus Sessions: ${focusSessions.length} total (${Math.round(totalFocusMin / 60 * 10) / 10} hours)
+- Active Goals: ${activeGoals || 'None set'}
+
+RULES:
+- Keep responses concise (2-4 sentences max unless asked for detail)
+- Reference the user's actual data when relevant
+- Give specific, personalized study advice
+- Be motivational but practical
+- Use the user's name sometimes
+- If asked about something outside study/productivity, politely redirect`;
+
+    const model = geminiAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    
+    // Build chat history
+    const chatHistory = (history || []).slice(-10).map(h => ({
+      role: h.role === 'user' ? 'user' : 'model',
+      parts: [{ text: h.content }]
+    }));
+
+    const chat = model.startChat({
+      history: chatHistory,
+      systemInstruction: systemPrompt,
+    });
+
+    const result = await chat.sendMessage(message);
+    const response = result.response.text();
+
+    res.json({ reply: response });
+  } catch (e) {
+    console.error('AI chat error:', e);
+    res.status(500).json({ message: 'AI is temporarily unavailable. Try again.' });
   }
 });
 
