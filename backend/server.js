@@ -358,6 +358,150 @@ app.get("/sessions/stats", auth, async (req, res) => {
 });
 
 /* ════════════════════════════════
+   LEADERBOARD
+════════════════════════════════ */
+app.get("/leaderboard", auth, async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+
+    // 1. Fetch all real registered users
+    const users = await User.find({}, 'name exam profilePic subjects').lean();
+
+    // 2. Fetch all focus sessions
+    const sessions = await Session.find({ type: 'focus' }).lean();
+
+    // 3. Fetch all goals
+    const goals = await Goal.find().lean();
+
+    const realUsersData = users.map(user => {
+      // Filter sessions for this user
+      const userSessions = sessions.filter(s => s.userId?.toString() === user._id.toString());
+      
+      // Calculate total study hours (rounded to nearest integer)
+      const totalMinutes = userSessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+      const hours = Math.round(totalMinutes / 60);
+
+      // Calculate streak
+      let streak = 0;
+      if (userSessions.length > 0) {
+        const uniqueDates = [...new Set(userSessions.map(s => {
+          const d = new Date(s.date);
+          return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        }))].sort((a, b) => b - a);
+
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        
+        let checkTime = todayStart;
+        if (!uniqueDates.includes(checkTime)) {
+          checkTime -= 86400000; // yesterday
+        }
+
+        if (uniqueDates.includes(checkTime)) {
+          streak = 1;
+          let expected = checkTime - 86400000;
+          for (let i = uniqueDates.indexOf(checkTime) + 1; i < uniqueDates.length; i++) {
+            if (uniqueDates[i] === expected) {
+              streak++;
+              expected -= 86400000;
+            } else {
+              break;
+            }
+          }
+        }
+      }
+
+      // Calculate score based on subject mastery and streak
+      let totalTopics = 0, completedTopics = 0;
+      (user.subjects || []).forEach(sub => {
+        (sub.topics || []).forEach(t => {
+          totalTopics++;
+          if (t.completed) {
+            completedTopics++;
+          } else {
+            const subtopics = t.subtopics || [];
+            if (subtopics.length > 0 && subtopics.every(st => st.completed)) {
+              completedTopics++;
+            }
+          }
+        });
+      });
+      const overallMastery = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+      // Goal progress
+      const userGoals = goals.filter(g => g.userId?.toString() === user._id.toString());
+      const avgGoalPct = userGoals.length > 0
+        ? Math.round(userGoals.reduce((acc, g) => acc + Math.min(100, (g.current / Math.max(1, g.target)) * 100), 0) / userGoals.length)
+        : 0;
+
+      // Composite score out of 100: 50% mastery, 30% streak, 20% goals
+      const score = Math.round(overallMastery * 0.5 + Math.min(30, streak * 6) + avgGoalPct * 0.2);
+
+      // Generate Avatar Initials
+      const initials = user.name
+        ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+        : 'U';
+
+      return {
+        _id: user._id.toString(),
+        name: user.name,
+        exam: user.exam || 'Other',
+        hours: hours,
+        streak: streak,
+        score: Math.min(100, Math.max(0, score)) || 0,
+        avatar: initials,
+        isMe: user._id.toString() === currentUserId.toString(),
+        profilePic: user.profilePic || '',
+      };
+    });
+
+    // 4. Define premium virtual competitors as benchmarks to merge
+    const virtualCompetitors = [
+      { name: 'Arjun Sharma', exam: 'GATE', hours: 312, streak: 45, score: 98, avatar: 'A' },
+      { name: 'Priya Verma', exam: 'NEET', hours: 290, streak: 38, score: 95, avatar: 'P' },
+      { name: 'Rohit Kumar', exam: 'JEE', hours: 240, streak: 30, score: 92, avatar: 'R' },
+      { name: 'Sneha Rao', exam: 'UPSC', hours: 180, streak: 28, score: 89, avatar: 'S' },
+      { name: 'Dev Patel', exam: 'CAT', hours: 120, streak: 22, score: 86, avatar: 'D' },
+      { name: 'Anita Singh', exam: 'SSC', hours: 80, streak: 20, score: 82, avatar: 'An' },
+    ];
+
+    // Filter out virtual competitors whose name EXACTLY matches a real user's name
+    const realNames = new Set(realUsersData.map(u => u.name.trim().toLowerCase()));
+    const filteredVirtuals = virtualCompetitors.filter(vc => !realNames.has(vc.name.trim().toLowerCase()));
+
+    // Merge real database users and virtual competitors
+    const mergedList = [...realUsersData, ...filteredVirtuals.map((vc, i) => ({
+      _id: `virtual_${i}`,
+      name: vc.name,
+      exam: vc.exam,
+      hours: vc.hours,
+      streak: vc.streak,
+      score: vc.score,
+      avatar: vc.avatar,
+      isMe: false,
+      profilePic: '',
+    }))];
+
+    // Sort by hours (primary) and score (secondary) descending
+    mergedList.sort((a, b) => {
+      if (b.hours !== a.hours) return b.hours - a.hours;
+      return b.score - a.score;
+    });
+
+    // Map rank to sorted list
+    const finalLeaderboard = mergedList.map((user, idx) => ({
+      ...user,
+      rank: idx + 1
+    }));
+
+    res.json({ leaderboard: finalLeaderboard });
+  } catch (e) {
+    console.error("Leaderboard error:", e);
+    res.status(500).json({ message: e.message });
+  }
+});
+
+/* ════════════════════════════════
    NOTES VAULT (text-based, MongoDB)
 ════════════════════════════════ */
 app.get("/notes", auth, async (req, res) => {
