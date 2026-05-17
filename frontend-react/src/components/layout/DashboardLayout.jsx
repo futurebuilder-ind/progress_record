@@ -38,7 +38,7 @@ export default function DashboardLayout() {
 
   const handleLogout = () => {
     logout();
-    toast.success('Session terminated successfully');
+    toast.success('Signed out');
     navigate('/login');
   };
 
@@ -56,8 +56,8 @@ export default function DashboardLayout() {
           </div>
           {(!isCollapsed || isMobile) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="text-white font-black text-[15px] font-orbitron tracking-widest leading-tight">PROGRESS</div>
-              <div className="text-slate-500 font-black text-[13px] font-orbitron tracking-widest leading-tight">RECORD</div>
+              <div className="text-white font-bold text-[15px] tracking-tight leading-tight">Progress</div>
+              <div className="text-slate-500 font-bold text-[12px] tracking-tight leading-tight">Record</div>
             </motion.div>
           )}
         </div>
@@ -81,8 +81,8 @@ export default function DashboardLayout() {
           {(!isCollapsed || isMobile) && (
             <div className="overflow-hidden">
               <div className="text-white font-bold text-sm truncate tracking-tight">{user?.name}</div>
-              <div className="text-slate-500 text-[10px] font-mono tracking-widest uppercase truncate flex items-center gap-1">
-                <Zap size={10} className="text-blue-400" /> {user?.examType || 'OPERATOR'}
+              <div className="text-slate-500 text-[10px] tracking-wider uppercase truncate flex items-center gap-1">
+                <Zap size={10} className="text-blue-400" /> {user?.examType || 'Student'}
               </div>
             </div>
           )}
@@ -92,7 +92,7 @@ export default function DashboardLayout() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
         <div className={`text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-4 px-3 ${isCollapsed && !isMobile ? 'text-center' : ''}`}>
-          {isCollapsed && !isMobile ? '---' : 'System Modules'}
+          {isCollapsed && !isMobile ? '' : 'Navigation'}
         </div>
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink key={to} to={to} onClick={() => setSidebarOpen(false)}
@@ -130,13 +130,13 @@ export default function DashboardLayout() {
           }
         >
           <Settings size={isCollapsed && !isMobile ? 22 : 18} className="group-hover:rotate-90 transition-transform duration-500" />
-          {(!isCollapsed || isMobile) && <span>System Settings</span>}
+          {(!isCollapsed || isMobile) && <span>Settings</span>}
         </NavLink>
         
         <button onClick={handleLogout}
           className={`flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'gap-3 px-4'} w-full py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-white/5 hover:text-white transition-all group`}>
           <LogOut size={isCollapsed && !isMobile ? 22 : 18} className="group-hover:-translate-x-1 transition-transform" /> 
-          {(!isCollapsed || isMobile) && <span>Disconnect</span>}
+          {(!isCollapsed || isMobile) && <span>Sign out</span>}
         </button>
       </div>
     </div>

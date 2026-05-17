@@ -6,11 +6,11 @@ import { Zap, TrendingUp, BookOpen, Target, Flame, Clock, Trophy, Brain, Sparkle
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const QUOTES = [
-  "Initialize sequence. Optimization running.",
-  "System resources allocated for maximum output.",
-  "Data synthesis complete. Awaiting operator input.",
-  "Performance metrics indicate upward trajectory.",
-  "Calibrating neural pathways for deep focus.",
+  "Consistency is what transforms average into excellence.",
+  "Small daily improvements lead to stunning results.",
+  "The expert in anything was once a beginner.",
+  "Focus on progress, not perfection.",
+  "Every hour of study is an investment in your future.",
 ];
 
 function StatCard({ icon: Icon, label, value, delay, trend }) {
@@ -30,8 +30,8 @@ function StatCard({ icon: Icon, label, value, delay, trend }) {
           </div>
         )}
       </div>
-      <div className="text-3xl md:text-4xl font-black text-white mb-2 font-orbitron tracking-wider">{value}</div>
-      <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{label}</div>
+      <div className="text-3xl md:text-4xl font-black text-white mb-2 tracking-tight">{value}</div>
+      <div className="text-slate-500 text-[11px] font-semibold uppercase tracking-wide">{label}</div>
     </motion.div>
   );
 }
@@ -86,7 +86,7 @@ export default function Dashboard() {
         <div className="shimmer-premium w-64 h-64 rounded-full opacity-5"></div>
         <div className="absolute flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-t-2 border-white rounded-full animate-spin"></div>
-          <span className="text-white font-mono text-xs tracking-widest uppercase animate-pulse">Initializing Interface_</span>
+          <span className="text-slate-400 text-xs tracking-wider uppercase animate-pulse">Loading dashboard...</span>
         </div>
       </div>
     );
@@ -99,13 +99,15 @@ export default function Dashboard() {
         className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 relative z-10"
       >
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white text-[10px] font-bold uppercase tracking-widest mb-2">
-            <Activity size={12} className="animate-pulse text-blue-400" /> System Online
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 text-[10px] font-medium uppercase tracking-wider mb-3">
+            <Activity size={10} className="text-emerald-400" />
+            <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse"></span>
+            Online
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-            Welcome, {user?.name?.split(' ')[0]}.
+            Welcome back, {user?.name?.split(' ')[0]}
           </h1>
-          <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">{quote}</p>
+          <p className="text-slate-500 text-sm mt-1 font-light italic">"{quote}"</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -114,8 +116,8 @@ export default function Dashboard() {
               <Users size={24} className="text-white" />
             </div>
             <div>
-              <div className="text-white font-black text-2xl font-orbitron tracking-widest leading-none">{activeUsers}</div>
-              <div className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-1">Active Users</div>
+              <div className="text-white font-bold text-2xl tracking-tight leading-none">{activeUsers}</div>
+              <div className="text-slate-500 text-[10px] uppercase font-medium tracking-wider mt-1">Users</div>
             </div>
           </div>
           <div className="glass-card rounded-2xl px-6 py-4 flex items-center gap-4 border-l-2 border-l-white">
@@ -123,8 +125,8 @@ export default function Dashboard() {
               <Flame size={24} className="text-white animate-pulse" />
             </div>
             <div>
-              <div className="text-white font-black text-2xl font-orbitron tracking-widest leading-none">{focusSessions}</div>
-              <div className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-1">Focus Sessions</div>
+              <div className="text-white font-bold text-2xl tracking-tight leading-none">{focusSessions}</div>
+              <div className="text-slate-500 text-[10px] uppercase font-medium tracking-wider mt-1">Sessions</div>
             </div>
           </div>
         </div>
@@ -132,10 +134,10 @@ export default function Dashboard() {
 
       {/* Stats Grid - Pure Black Bento */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <StatCard icon={Brain} label="Neural Mastery" value={`${mastery}%`} delay={0.1} trend="Stable" />
-        <StatCard icon={BookOpen} label="Active Subjects" value={subjectCount} delay={0.2} />
-        <StatCard icon={Target} label="Tasks Executed" value={totalTasks === 0 ? '0' : `${completedTasks}/${totalTasks}`} delay={0.3} trend="Optimal" />
-        <StatCard icon={Trophy} label="Daily Streak" value={`${consistency} D`} delay={0.4} trend={consistency > 0 ? "Active" : ""} />
+        <StatCard icon={Brain} label="Mastery" value={`${mastery}%`} delay={0.1} trend={mastery >= 50 ? 'On Track' : ''} />
+        <StatCard icon={BookOpen} label="Subjects" value={subjectCount} delay={0.15} />
+        <StatCard icon={Target} label="Tasks Done" value={totalTasks === 0 ? '0' : `${completedTasks}/${totalTasks}`} delay={0.2} trend={completedTasks > 0 ? 'Progress' : ''} />
+        <StatCard icon={Trophy} label="Streak" value={`${consistency}d`} delay={0.25} trend={consistency > 0 ? `${consistency} day${consistency > 1 ? 's' : ''}` : ''} />
       </div>
 
       {/* Main Bento Grid */}
@@ -146,13 +148,13 @@ export default function Dashboard() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-[100px] pointer-events-none"></div>
           <div className="flex justify-between items-center mb-8 relative z-10">
             <div>
-              <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                <Clock size={18} className="text-slate-400" /> Activity Matrix
+              <h3 className="text-white font-semibold text-lg flex items-center gap-2.5">
+                <Clock size={16} className="text-slate-400" /> Weekly Activity
               </h3>
-              <p className="text-slate-500 text-[10px] mt-1 font-mono tracking-widest uppercase">Weekly Focus Hours</p>
+              <p className="text-slate-500 text-xs mt-1">Focus hours over the last 7 days</p>
             </div>
-            <div className="px-3 py-1 rounded-md bg-[#0a0a0a] border border-white/10 text-slate-300 text-[10px] font-bold font-mono tracking-widest uppercase">
-              7D_VIEW
+            <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-slate-400 text-[10px] font-medium tracking-wider">
+              Last 7 days
             </div>
           </div>
           
@@ -184,10 +186,10 @@ export default function Dashboard() {
           className="glass-card rounded-3xl p-6 md:p-8 flex flex-col relative overflow-hidden">
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-[80px] pointer-events-none"></div>
           <div className="mb-4 relative z-10">
-            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-              <TrendingUp size={18} className="text-slate-400" /> Vector Analysis
+            <h3 className="text-white font-semibold text-lg flex items-center gap-2.5">
+              <TrendingUp size={16} className="text-slate-400" /> Subject Overview
             </h3>
-            <p className="text-slate-500 text-[10px] mt-1 font-mono tracking-widest uppercase">Subject Mastery Overlay</p>
+            <p className="text-slate-500 text-xs mt-1">Mastery breakdown by subject</p>
           </div>
           
           <div className="flex-1 min-h-[250px] relative z-10 flex items-center justify-center">
@@ -205,7 +207,7 @@ export default function Dashboard() {
                 <div className="w-16 h-16 rounded-2xl bg-[#0a0a0a] flex items-center justify-center mx-auto mb-3 border border-white/5">
                   <BookOpen size={20} className="text-slate-600" />
                 </div>
-                <p className="text-slate-500 text-[10px] font-mono tracking-widest uppercase">Insufficient Data</p>
+                <p className="text-slate-500 text-xs">Add subjects to see your progress here</p>
               </div>
             )}
           </div>
@@ -219,25 +221,22 @@ export default function Dashboard() {
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
             <div className="md:col-span-4 lg:col-span-4">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-black">
-                  <Sparkles size={18} />
+                <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+                  <Sparkles size={16} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg tracking-tight">Diagnostics</h3>
-                  <div className="text-slate-500 text-[10px] font-mono font-bold tracking-widest uppercase flex items-center gap-1 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                    Engine Active
-                  </div>
+                  <h3 className="text-white font-semibold text-lg tracking-tight">Quick Insights</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Your study performance summary</p>
                 </div>
               </div>
               
-              <div className="p-5 rounded-2xl bg-[#050505] border border-white/5 shadow-inner">
-                <p className="text-slate-400 text-sm leading-relaxed font-light">
+              <div className="p-5 rounded-2xl bg-[#050505] border border-white/5">
+                <p className="text-slate-400 text-sm leading-relaxed">
                   {mastery === 0 && totalTasks === 0
-                    ? 'Awaiting initial data injection. Configure parameters to begin analysis.'
+                    ? 'Start by adding subjects and completing tasks to see your performance insights here.'
                     : mastery >= 70
-                    ? `Optimal output achieved. Mastery parameter at ${mastery}%. Maintain current trajectory.`
-                    : `Anomaly detected: ${totalTasks - completedTasks} unresolved sequences. Recalibrate focus to elevate mastery.`}
+                    ? `Great work! You\'re at ${mastery}% mastery with ${completedTasks} tasks completed. Keep this momentum going.`
+                    : `You have ${totalTasks - completedTasks} tasks remaining. Focus on completing them to improve your ${mastery}% mastery score.`}
                 </p>
               </div>
             </div>
@@ -251,8 +250,8 @@ export default function Dashboard() {
               ].map((item, idx) => (
                 <div key={item.label} className="p-6 rounded-2xl bg-[#0a0a0a] border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-center relative overflow-hidden group">
                   <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/5 to-transparent pointer-events-none`}></div>
-                  <div className={`text-4xl font-black font-orbitron mb-2 text-white`}>{item.value}</div>
-                  <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-4">{item.label}</div>
+                  <div className="text-4xl font-black mb-2 text-white tracking-tight">{item.value}</div>
+                  <div className="text-slate-500 text-[11px] font-semibold uppercase tracking-wide mb-4">{item.label}</div>
                   
                   {/* Decorative minimalist progress bar */}
                   <div className="w-full h-[2px] bg-[#000000] overflow-hidden">
@@ -272,12 +271,10 @@ export default function Dashboard() {
       
       {/* Footer Branding */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-        className="pt-8 text-center text-slate-600 text-[10px] font-mono tracking-widest flex items-center justify-center gap-4 uppercase">
-        <span>ENGINEERED BY AVEE RANJAN</span>
-        <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-        <span>v3.0.0 Developer Build</span>
-        <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-        <span>System Nominal</span>
+        className="pt-8 text-center text-slate-600 text-[10px] tracking-wider flex items-center justify-center gap-3">
+        <span>Built by Avee Ranjan</span>
+        <span className="w-0.5 h-0.5 bg-slate-700 rounded-full"></span>
+        <span>Progress Record v3</span>
       </motion.div>
     </div>
   );
