@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import API from '../api/axios';
 import { Zap, TrendingUp, BookOpen, Target, Flame, Clock, Trophy, Brain, Sparkles, Activity, Users, Lightbulb } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import AdContainer from '../components/AdContainer';
+
 
 const QUOTES = [
   "Consistency is what transforms average into excellence.",
@@ -302,14 +302,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
       
-      {/* Monetization Ad Slot */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: 0.85, duration: 0.5 }}
-      >
-        <AdContainer layout="dashboard" />
-      </motion.div>
+
       
       {/* Footer Branding */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}

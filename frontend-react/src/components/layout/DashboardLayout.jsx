@@ -5,11 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, BookOpen, BarChart3, Timer, FileText,
   Target, Trophy, Settings, LogOut, Brain, Menu, X, ChevronRight, MessageSquare, ShieldCheck,
-  Zap, Sparkles, Coins
+  Zap, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { applyTheme } from '../../pages/Settings';
-import AdContainer from '../AdContainer';
 
 const navItems = [
   { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard'  },
@@ -21,7 +20,6 @@ const navItems = [
   { to: '/leaderboard', icon: Trophy,           label: 'Leaderboard'},
   { to: '/feedback',    icon: MessageSquare,    label: 'Feedback'   },
   { to: '/ai-chat',     icon: Sparkles,         label: 'AI Assistant'},
-  { to: '/monetization', icon: Coins,            label: 'Monetization'},
   { to: '/feedback-admin', icon: ShieldCheck,    label: 'Admin Panel' },
 ];
 
@@ -126,13 +124,6 @@ export default function DashboardLayout() {
           </NavLink>
         ))}
       </nav>
-
-      {/* Sidebar Ad Placement (Carbon/Premium tech ad block) */}
-      {(!isCollapsed || isMobile) && (
-        <div className="mt-auto border-t border-white/5 pt-2">
-          <AdContainer layout="sidebar" />
-        </div>
-      )}
 
       {/* Bottom Actions */}
       <div className="p-3 border-t border-white/5 space-y-1">
