@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Brain, ArrowRight, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -44,146 +44,158 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000000] flex flex-col md:flex-row relative overflow-hidden font-['Space_Grotesk']">
-      {/* Background Cinematic Effects */}
-      <div className="absolute inset-0 bg-grid-cyber opacity-20 pointer-events-none"></div>
-      <motion.div 
-        animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen"
-      ></motion.div>
-      <motion.div 
-        animate={{ scale: [1, 1.5, 1], opacity: [0.1, 0.3, 0.1] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-white/5 rounded-full blur-[150px] pointer-events-none mix-blend-screen"
-      ></motion.div>
+    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col md:flex-row relative overflow-hidden font-['Outfit'] select-none">
+      
+      {/* Background Soft Gradients (Organic SaaS style) */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-400/5 dark:bg-blue-600/10 blur-[130px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-indigo-400/5 dark:bg-indigo-600/5 blur-[150px] pointer-events-none"></div>
 
-      {/* Left Panel - Branding & Visuals */}
-      <div className="hidden md:flex md:w-1/2 p-12 flex-col justify-between relative z-10 border-r border-white/5 bg-[#000000]/50 backdrop-blur-3xl">
+      {/* Left Panel - Branding */}
+      <div className="hidden md:flex md:w-1/2 p-16 flex-col justify-between relative z-10 border-r border-[var(--border-color)] bg-slate-50/50 dark:bg-slate-900/10">
+        
+        {/* Brand Logo & Tagline */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex items-center gap-4"
+          transition={{ duration: 0.6 }}
+          className="flex items-center gap-3"
         >
-          <div className="w-12 h-12 rounded-2xl bg-[#050505] border border-white/10 flex items-center justify-center relative overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.05)]">
-            <div className="absolute inset-0 cyber-scanline"></div>
-            <Brain size={24} className="text-white relative z-10" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_4px_12px_rgba(37,99,235,0.2)] text-white flex-shrink-0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+              <path d="M6 6h10" strokeOpacity="0.3" />
+              <path d="M6 10h10" strokeOpacity="0.3" />
+              <path d="M8 18l3-3 3 3 4-4" stroke="currentColor" strokeWidth="2.5" />
+            </svg>
           </div>
-          <span className="text-2xl font-black text-white tracking-widest uppercase font-orbitron">Progress<span className="text-slate-500">Record</span></span>
+          <div className="flex flex-col">
+            <span className="text-[16px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">Progress Record</span>
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1.5 leading-none">Built by Avee Ranjan</span>
+          </div>
         </motion.div>
 
         <div className="space-y-6">
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white text-xs font-semibold uppercase tracking-wider"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/30 border border-blue-100/50 dark:border-blue-900/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-wider shadow-sm"
           >
-            <Sparkles size={14} /> System Online
+            <ShieldCheck size={12} className="animate-pulse" /> Secure Clearance
           </motion.div>
-          <h1 className="text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight">
+          <h1 className="text-5xl lg:text-6xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
             Master your <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-300 to-slate-500">future today.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 dark:from-white dark:via-blue-200 dark:to-indigo-300">future today.</span>
           </h1>
-          <p className="text-slate-400 text-lg max-w-md font-light h-8">
-            {typedText}<motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} className="inline-block w-2 h-5 bg-white ml-1 translate-y-1"></motion.span>
+          <p className="text-slate-500 dark:text-slate-400 text-lg max-w-sm leading-relaxed font-light">
+            {typedText}<motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} className="inline-block w-1 h-4 bg-blue-500 ml-0.5 translate-y-0.5"></motion.span>
           </p>
         </div>
 
+        {/* Verified badge */}
         <motion.div 
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          className="text-slate-500 text-[10px] font-bold tracking-widest flex items-center gap-2 uppercase"
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ delay: 0.4 }}
+          className="flex items-center"
         >
-          <div className="w-8 h-[1px] bg-slate-700"></div>
-          ENGINEERED BY <span className="text-white">AVEE RANJAN</span>
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-900 border border-[var(--border-color)] text-[10px] tracking-widest font-extrabold text-slate-500 dark:text-slate-400 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse"></span>
+            ENGINEERED BY <span className="text-slate-900 dark:text-white font-black">AVEE RANJAN</span>
+          </div>
         </motion.div>
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-12 relative z-10">
+      {/* Right Panel - Form */}
+      <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-16 relative z-10">
         <motion.div 
-          initial={{ opacity: 0, x: 40 }}
+          initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          transition={{ duration: 0.6 }}
           className="w-full max-w-md"
         >
           {/* Mobile Header (Hidden on Desktop) */}
-          <div className="md:hidden flex items-center gap-3 mb-10 justify-center">
-            <div className="w-10 h-10 rounded-xl bg-[#050505] border border-white/10 flex items-center justify-center">
-              <Brain size={20} className="text-white" />
+          <div className="md:hidden flex flex-col items-center gap-2 mb-8 justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg text-white">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                <path d="M8 18l3-3 3 3 4-4" stroke="currentColor" strokeWidth="2.5" />
+              </svg>
             </div>
-            <span className="text-xl font-black text-white font-orbitron tracking-widest">P<span className="text-slate-500">R</span></span>
+            <span className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none mt-1">Progress Record</span>
           </div>
 
-          <div className="glass-card rounded-3xl p-8 sm:p-10 relative overflow-hidden">
-            {/* Top glowing line */}
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
-
-            <div className="mb-8">
-              <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Access Portal</h2>
-              <p className="text-slate-500 text-xs uppercase tracking-widest font-bold">Verify your credentials to enter the workspace.</p>
+          <div className="saas-card p-8 sm:p-10 relative overflow-hidden bg-[var(--bg-card)]">
+            <div className="mb-6">
+              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Access Portal</h2>
+              <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Verify your credentials to enter the workspace.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Email Identification</label>
-                <div className="input-glow-border rounded-xl">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="engineer@domain.com"
-                    required
-                    className="w-full px-5 py-4 bg-[#050505]/80 border border-white/5 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:bg-[#0a0a0a] transition-all font-mono text-sm"
-                  />
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="engineer@domain.com"
+                  required
+                  className="saas-input"
+                />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Security Key</label>
-                  <a href="#" className="text-[10px] text-white hover:text-slate-300 transition-colors uppercase tracking-widest">Forgot?</a>
+              <div className="flex flex-col gap-1.5 relative">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Password</label>
+                  <a href="#" className="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest">Forgot?</a>
                 </div>
-                <div className="input-glow-border rounded-xl relative">
+                <div className="relative w-full">
                   <input
                     type={showPass ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••••••"
                     required
-                    className="w-full px-5 py-4 bg-[#050505]/80 border border-white/5 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:bg-[#0a0a0a] transition-all font-mono text-sm pr-12"
+                    className="saas-input w-full pr-10"
                   />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
-                    {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer">
+                    {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
-              <motion.button
+              <button
                 type="submit"
                 disabled={loading}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-4 btn-neon-solid rounded-xl flex items-center justify-center gap-3 disabled:opacity-50 mt-4 group text-xs uppercase tracking-widest font-bold"
+                className="w-full saas-btn-primary py-3 flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-50"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
-                  <>Authorize <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+                  <><span>Authorize Workspace</span> <ArrowRight size={15} /></>
                 )}
-              </motion.button>
+              </button>
             </form>
 
-            <div className="mt-8 text-center border-t border-white/5 pt-6">
-              <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">
+            <div className="mt-6 text-center border-t border-[var(--border-color)] pt-5">
+              <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">
                 No active clearance?{' '}
-                <Link to="/signup" className="text-white hover:text-slate-300 transition-colors underline decoration-white/20 underline-offset-4 ml-1">
+                <Link to="/signup" className="text-blue-500 hover:text-blue-600 transition-colors font-bold underline underline-offset-4 ml-1">
                   Request access
                 </Link>
               </p>
             </div>
           </div>
+
+          {/* Mobile Creator Badge */}
+          <div className="md:hidden flex justify-center mt-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-[var(--border-color)] text-[9px] tracking-widest font-extrabold text-slate-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              ENGINEERED BY <span className="text-slate-700 dark:text-white">AVEE RANJAN</span>
+            </div>
+          </div>
+
         </motion.div>
       </div>
+
     </div>
   );
 }

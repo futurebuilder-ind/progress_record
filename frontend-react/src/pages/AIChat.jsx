@@ -1,18 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, User, Bot, Loader2, Trash2 } from 'lucide-react';
+import { Send, Sparkles, User, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
 
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-1 px-4 py-3">
+    <div className="flex items-center gap-1.5 px-4 py-3">
       {[0, 1, 2].map(i => (
         <motion.div key={i}
           animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1, 0.8] }}
           transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15 }}
-          className="w-1.5 h-1.5 bg-slate-400 rounded-full"
+          className="w-1.5 h-1.5 bg-blue-500 rounded-full"
         />
       ))}
     </div>
@@ -22,27 +22,27 @@ function TypingIndicator() {
 function MessageBubble({ msg, isUser }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} mb-4`}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className={`flex gap-3.5 ${isUser ? 'flex-row-reverse' : 'flex-row'} mb-4`}
     >
       <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
         isUser 
-          ? 'bg-white text-black' 
-          : 'bg-white/10 border border-white/10 text-white'
+          ? 'bg-blue-600 text-white shadow-sm' 
+          : 'bg-slate-100 dark:bg-slate-900 border border-[var(--border-color)] text-slate-500 dark:text-slate-400 shadow-sm'
       }`}>
         {isUser ? <User size={14} /> : <Sparkles size={14} />}
       </div>
-      <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+      <div className={`max-w-[78%] px-4 py-3 rounded-2xl text-xs leading-relaxed ${
         isUser 
-          ? 'bg-white text-black rounded-tr-md' 
-          : 'bg-[#0a0a0a] text-slate-300 border border-white/5 rounded-tl-md'
+          ? 'bg-blue-600 text-white rounded-tr-none' 
+          : 'bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-color)] rounded-tl-none'
       }`}>
         {msg.content.split('\n').map((line, i) => (
           <span key={i}>
             {line.startsWith('**') && line.endsWith('**') 
-              ? <strong className={isUser ? 'text-black' : 'text-white'}>{line.replace(/\*\*/g, '')}</strong>
+              ? <strong className={isUser ? 'text-white' : 'text-[var(--text-main)] font-bold'}>{line.replace(/\*\*/g, '')}</strong>
               : line.startsWith('- ') 
               ? <span className="block ml-2">• {line.substring(2)}</span>
               : line
@@ -95,7 +95,7 @@ export default function AIChat() {
     const userMsg = { role: 'user', content: msg, time: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
-
+  
     try {
       const { data } = await API.post('/ai/chat', {
         message: msg,
@@ -119,63 +119,63 @@ export default function AIChat() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] max-w-3xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-120px)] max-w-2xl mx-auto font-['Outfit'] select-none">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
-            <Sparkles size={18} className="text-white" />
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/10 flex items-center justify-center shadow-sm">
+            <Sparkles size={16} className="text-blue-500" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">AI Assistant</h1>
-            <p className="text-slate-500 text-xs">Powered by Gemini · Knows your study data</p>
+            <h1 className="text-sm font-extrabold text-slate-800 dark:text-white tracking-tight">AI Assistant</h1>
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-0.5">Powered by Gemini · Integrated study mainframe</p>
           </div>
         </div>
         {messages.length > 0 && (
-          <button onClick={clearChat} className="flex items-center gap-1.5 text-slate-500 hover:text-white text-xs transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
+          <button onClick={clearChat} className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white text-[11px] font-semibold transition-colors px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-900 border border-[var(--border-color)] cursor-pointer">
             <Trash2 size={12} /> Clear
           </button>
         )}
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto pr-2 chat-scroll">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
               className="text-center max-w-sm">
-              <div className="w-16 h-16 rounded-2xl bg-[#0a0a0a] border border-white/5 flex items-center justify-center mx-auto mb-4">
-                <Sparkles size={24} className="text-slate-500" />
+              <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/10 flex items-center justify-center mx-auto mb-4">
+                <Sparkles size={20} className="text-blue-500" />
               </div>
-              <h2 className="text-white font-semibold text-lg mb-2">Hey {user?.name?.split(' ')[0]}!</h2>
-              <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                I'm your AI study assistant. I know your subjects, progress, and focus patterns. Ask me anything about your studies.
+              <h2 className="text-slate-900 dark:text-white font-extrabold text-lg mb-1.5 tracking-tight">Hey {user?.name?.split(' ')[0]}!</h2>
+              <p className="text-slate-400 dark:text-slate-500 text-xs mb-5 leading-relaxed">
+                I'm your AI study companion. I know your study metrics, assignments, and focus consistency. Let's practice active recall!
               </p>
               
               <div className="grid grid-cols-2 gap-2">
                 {QUICK_PROMPTS.map(q => (
                   <button key={q.label} onClick={() => sendMessage(q.label)}
-                    className="flex items-center gap-2 p-3 rounded-xl bg-[#0a0a0a] border border-white/5 hover:border-white/15 text-slate-400 hover:text-white text-xs text-left transition-all group">
-                    <span className="text-base">{q.emoji}</span>
-                    <span className="group-hover:translate-x-0.5 transition-transform">{q.label}</span>
+                    className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] hover:border-blue-500/40 text-slate-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 text-xs text-left transition-all cursor-pointer shadow-sm">
+                    <span className="text-sm">{q.emoji}</span>
+                    <span className="font-semibold truncate">{q.label}</span>
                   </button>
                 ))}
               </div>
             </motion.div>
           </div>
         ) : (
-          <div className="py-4">
+          <div className="py-2">
             <AnimatePresence>
               {messages.map((msg, i) => (
                 <MessageBubble key={i} msg={msg} isUser={msg.role === 'user'} />
               ))}
             </AnimatePresence>
             {loading && (
-              <div className="flex gap-3 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0">
-                  <Sparkles size={14} className="text-white" />
+              <div className="flex gap-3.5 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-[var(--border-color)] flex items-center justify-center flex-shrink-0">
+                  <Sparkles size={14} className="text-slate-400" />
                 </div>
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl rounded-tl-md">
+                <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl rounded-tl-md">
                   <TypingIndicator />
                 </div>
               </div>
@@ -184,24 +184,21 @@ export default function AIChat() {
         )}
       </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0 pt-4 border-t border-white/5">
+      {/* Input Form */}
+      <div className="flex-shrink-0 pt-4 border-t border-[var(--border-color)]">
         <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
           className="flex items-center gap-2">
-          <div className="flex-1 relative">
-            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
-              placeholder="Ask about your study progress..."
-              disabled={loading}
-              className="w-full px-5 py-3.5 bg-[#0a0a0a] border border-white/8 rounded-xl text-white text-sm placeholder-slate-600 focus:outline-none focus:border-white/20 transition-colors disabled:opacity-50 pr-12" />
-          </div>
-          <motion.button type="submit" disabled={loading || !input.trim()}
-            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-            className="w-12 h-12 rounded-xl bg-white text-black flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+          <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
+            placeholder="Ask about your study progress..."
+            disabled={loading}
+            className="saas-input flex-1 py-3" />
+          <button type="submit" disabled={loading || !input.trim()}
+            className="saas-btn-primary w-11 h-11 p-0 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed">
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          </motion.button>
+          </button>
         </form>
-        <p className="text-center text-slate-600 text-[9px] mt-2 tracking-wider">
-          AI responses are personalized based on your study data
+        <p className="text-center text-slate-400 dark:text-slate-500 text-[9px] mt-2 tracking-wider uppercase font-bold">
+          AI coaching insights are dynamically synchronized with your metrics logs
         </p>
       </div>
     </div>
