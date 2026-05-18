@@ -336,7 +336,7 @@ export default function Dashboard() {
   // 4. Study time calculation
   const weeklyData = (analytics?.weeklyData && Array.isArray(analytics.weeklyData)) ? analytics.weeklyData : WEEKLY_DATA;
   const totalHours = weeklyData.reduce((acc, curr) => acc + (curr?.hours || 0), 0);
-  const studyTimeString = `${Math.floor(totalHours)}h ${Math.round((totalHours % 1) * 60)}m`;
+  const studyTimeString = `${Math.floor(totalHours)}hr ${Math.round((totalHours % 1) * 60)}min`;
 
   // 5. Goals Achieved
   const completedGoalsCount = (goals && Array.isArray(goals)) ? goals.filter(g => g && (g.completed || g.progress === 100)).length : 0;
