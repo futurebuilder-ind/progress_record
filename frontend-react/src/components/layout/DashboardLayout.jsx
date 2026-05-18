@@ -163,7 +163,7 @@ export default function DashboardLayout() {
               className={({ isActive }) =>
                 `flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'gap-3 px-4'} py-2.5 rounded-xl text-[13px] font-medium transition-all group relative overflow-hidden ${
                   isActive
-                    ? 'bg-blue-50 dark:bg-gradient-to-r dark:from-blue-600/10 dark:to-purple-600/5 text-blue-700 dark:text-white border border-blue-100 dark:border-blue-500/10'
+                    ? 'bg-blue-50 dark:bg-[#111] dark:bg-gradient-to-r dark:from-blue-600/10 dark:to-purple-600/5 text-blue-700 dark:text-white border border-blue-100 dark:border-blue-500/10'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
                 }`
               }
@@ -205,7 +205,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#0a0a0a] font-['Inter',sans-serif]">
+    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-slate-50 dark:bg-[#0a0a0a] font-['Inter',sans-serif] w-full">
       
       {/* Search Modal Overlay */}
       <AnimatePresence>
@@ -351,7 +351,7 @@ export default function DashboardLayout() {
                 {profileOpen && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setProfileOpen(false)} />
-                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} style={{ transformOrigin: 'top right' }} className="absolute right-0 top-12 w-56 bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-40">
+                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} style={{ transformOrigin: 'top right' }} className="absolute right-0 top-12 w-56 bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl p-2 z-40">
                       <div className="p-3 border-b border-slate-100 dark:border-white/5 mb-2">
                         <p className="text-[13px] font-medium text-slate-800 dark:text-white truncate">{user?.name}</p>
                         <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
