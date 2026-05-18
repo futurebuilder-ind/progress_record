@@ -40,10 +40,12 @@ const WEEKLY_DATA = [
 
 /* ─── precision subject mastery calculator matching Subjects.jsx ─── */
 function calcSubjectMastery(subject) {
+  if (!subject) return 0;
   const topics = subject.topics || [];
   if (topics.length === 0) return 0;
   let totalWeight = 0, doneWeight = 0;
   topics.forEach(t => {
+    if (!t) return;
     const subtopics = t.subtopics || [];
     if (subtopics.length === 0) {
       totalWeight++;
@@ -51,13 +53,14 @@ function calcSubjectMastery(subject) {
     } else {
       let stTotal = 0, stDone = 0;
       subtopics.forEach(st => {
+        if (!st) return;
         const tasks = st.tasks || [];
         if (tasks.length === 0) {
           stTotal++;
           if (st.completed) stDone++;
         } else {
           stTotal += tasks.length;
-          stDone += tasks.filter(tk => tk.completed).length;
+          stDone += tasks.filter(tk => tk && tk.completed).length;
         }
       });
       totalWeight++;
@@ -98,17 +101,28 @@ export default function Dashboard() {
         API.get('/goals').catch(() => ({ data: [] }))
       ]);
 
-      if (analyticsRes.data) {
+      if (analyticsRes && analyticsRes.data) {
         setAnalytics(analyticsRes.data);
+      } else {
+        setAnalytics(MOCK_ANALYTICS);
       }
-      if (subjectsRes.data?.subjects) {
+
+      if (subjectsRes && subjectsRes.data && subjectsRes.data.subjects) {
         setSubjects(subjectsRes.data.subjects);
+      } else {
+        setSubjects([]);
       }
-      if (goalsRes.data) {
+
+      if (goalsRes && goalsRes.data) {
         setGoals(goalsRes.data);
+      } else {
+        setGoals([]);
       }
     } catch (e) {
       console.warn("Using default visualization specs due to API fetch issue.");
+      setAnalytics(MOCK_ANALYTICS);
+      setSubjects([]);
+      setGoals([]);
     } finally {
       setLoading(false);
     }
@@ -201,15 +215,17 @@ export default function Dashboard() {
     );
   }
 
-  // ─── Telemetry Analytics Computations from Live MongoDB State ───
+  // ─── Safe Telemetry Analytics Computations from Live MongoDB State ───
   
   // 1. Overall Mastery calculation
-  const overallMasteryValue = subjects.length > 0
+  const overallMasteryValue = (subjects && Array.isArray(subjects) && subjects.length > 0)
     ? Math.round(subjects.reduce((acc, sub) => acc + calcSubjectMastery(sub), 0) / subjects.length)
     : (analytics?.overallMastery ?? 60);
 
   // 2. Total Subjects Count
-  const totalSubjectsCount = subjects.length > 0 ? subjects.length : (analytics?.subjectMastery?.length ?? 6);
+  const totalSubjectsCount = (subjects && Array.isArray(subjects) && subjects.length > 0) 
+    ? subjects.length 
+    : (analytics?.subjectMastery?.length ?? 6);
 
   // 3. Completed Topics count & task lists
   let completedTopicsCount = 0;
@@ -217,26 +233,28 @@ export default function Dashboard() {
   let upcomingTasksList = [];
   let recentActivityList = [];
 
-  if (subjects.length > 0) {
+  if (subjects && Array.isArray(subjects) && subjects.length > 0) {
     subjects.forEach(subject => {
+      if (!subject) return;
       const topics = subject.topics || [];
       topics.forEach(t => {
+        if (!t) return;
         totalTopicsCount++;
         if (t.completed) {
           completedTopicsCount++;
           recentActivityList.push({
             type: 'topic',
-            title: `Completed topic "${t.name}"`,
-            subtitle: subject.name,
+            title: `Completed topic "${t.name || 'Unnamed Topic'}"`,
+            subtitle: subject.name || 'General',
             time: t.deadline ? new Date(t.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Recently',
             timestamp: t.deadline ? new Date(t.deadline).getTime() : Date.now() - 3600000 * 2,
           });
         } else {
           if (t.deadline) {
             upcomingTasksList.push({
-              id: t._id,
-              title: t.name,
-              subtitle: subject.name,
+              id: t._id || Math.random().toString(),
+              title: t.name || 'Unnamed Topic',
+              subtitle: subject.name || 'General',
               date: new Date(t.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
               daysLeft: Math.ceil((new Date(t.deadline) - new Date()) / 86400000),
               completed: false,
@@ -248,20 +266,21 @@ export default function Dashboard() {
         // Subtopics checking
         const subtopics = t.subtopics || [];
         subtopics.forEach(st => {
+          if (!st) return;
           if (st.completed) {
             recentActivityList.push({
               type: 'subtopic',
-              title: `Mastered subtopic "${st.name}"`,
-              subtitle: `${t.name} (${subject.name})`,
+              title: `Mastered subtopic "${st.name || 'Unnamed Subtopic'}"`,
+              subtitle: `${t.name || 'Topic'} (${subject.name || 'Subject'})`,
               time: st.deadline ? new Date(st.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Recently',
               timestamp: st.deadline ? new Date(st.deadline).getTime() : Date.now() - 3600000 * 8,
             });
           } else {
             if (st.deadline) {
               upcomingTasksList.push({
-                id: st._id,
-                title: st.name,
-                subtitle: t.name,
+                id: st._id || Math.random().toString(),
+                title: st.name || 'Unnamed Subtopic',
+                subtitle: t.name || 'General',
                 date: new Date(st.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
                 daysLeft: Math.ceil((new Date(st.deadline) - new Date()) / 86400000),
                 completed: false,
@@ -273,11 +292,11 @@ export default function Dashboard() {
           // Inner tasks checking
           const tasks = st.tasks || [];
           tasks.forEach(tk => {
-            if (tk.completed) {
+            if (tk && tk.completed) {
               recentActivityList.push({
                 type: 'task',
-                title: `Completed task "${tk.name}"`,
-                subtitle: `${st.name}`,
+                title: `Completed task "${tk.name || 'Unnamed Task'}"`,
+                subtitle: `${st.name || 'Subtopic'}`,
                 time: 'Recently',
                 timestamp: Date.now() - 3600000,
               });
@@ -315,13 +334,13 @@ export default function Dashboard() {
   }
 
   // 4. Study time calculation
-  const weeklyData = analytics?.weeklyData || WEEKLY_DATA;
-  const totalHours = weeklyData.reduce((acc, curr) => acc + (curr.hours || 0), 0);
+  const weeklyData = (analytics?.weeklyData && Array.isArray(analytics.weeklyData)) ? analytics.weeklyData : WEEKLY_DATA;
+  const totalHours = weeklyData.reduce((acc, curr) => acc + (curr?.hours || 0), 0);
   const studyTimeString = `${Math.floor(totalHours)}h ${Math.round((totalHours % 1) * 60)}m`;
 
   // 5. Goals Achieved
-  const completedGoalsCount = goals.filter(g => g.completed || g.progress === 100).length;
-  const totalGoalsCount = goals.length;
+  const completedGoalsCount = (goals && Array.isArray(goals)) ? goals.filter(g => g && (g.completed || g.progress === 100)).length : 0;
+  const totalGoalsCount = (goals && Array.isArray(goals)) ? goals.length : 0;
   const goalsAchievedString = totalGoalsCount > 0 ? `${completedGoalsCount}/${totalGoalsCount}` : `${analytics?.completedGoals || 3}`;
 
   // 6. Focus Score calculation
@@ -332,18 +351,18 @@ export default function Dashboard() {
   const productivityGainString = consistency > 0 ? `+${Math.min(25, 5 + consistency * 2.5)}%` : `+12%`;
 
   // 8. Subject Progress bars
-  const activeSubjectMasteries = subjects.length > 0 
+  const activeSubjectMasteries = (subjects && Array.isArray(subjects) && subjects.length > 0) 
     ? subjects.map((sub, i) => {
         const colors = ['#3b82f6', '#0d9488', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899'];
         const bgColors = ['bg-blue-500', 'bg-teal-500', 'bg-purple-500', 'bg-orange-500', 'bg-cyan-500', 'bg-pink-500'];
         return {
-          name: sub.name,
+          name: sub?.name || 'Unnamed Subject',
           mastery: calcSubjectMastery(sub),
           color: colors[i % colors.length],
           bg: bgColors[i % bgColors.length]
         };
       })
-    : analytics.subjectMastery;
+    : (analytics?.subjectMastery || MOCK_ANALYTICS.subjectMastery || []);
 
   return (
     <div className="space-y-6 pb-20 relative font-['Outfit'] select-none">
@@ -555,20 +574,20 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-4 my-2.5 overflow-y-auto max-h-[220px] pr-1.5 custom-scrollbar">
-            {activeSubjectMasteries.length > 0 ? (
+            {activeSubjectMasteries && activeSubjectMasteries.length > 0 ? (
               activeSubjectMasteries.map((s, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="text-slate-700 dark:text-slate-300">{s.name}</span>
-                    <span className="text-slate-900 dark:text-white">{s.mastery}%</span>
+                    <span className="text-slate-700 dark:text-slate-300">{s?.name || 'Unnamed Subject'}</span>
+                    <span className="text-slate-900 dark:text-white">{s?.mastery || 0}%</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-full overflow-hidden border border-slate-200/20">
                     <motion.div 
                       initial={{ width: 0 }} 
-                      animate={{ width: `${s.mastery}%` }}
+                      animate={{ width: `${s?.mastery || 0}%` }}
                       transition={{ duration: 1, delay: 0.1 * idx }}
                       className="h-full rounded-full"
-                      style={{ width: `${s.mastery}%`, backgroundColor: s.color || '#3b82f6' }}
+                      style={{ width: `${s?.mastery || 0}%`, backgroundColor: s?.color || '#3b82f6' }}
                     />
                   </div>
                 </div>
@@ -631,7 +650,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex-1 my-4 space-y-4 overflow-y-auto pr-1 custom-scrollbar">
-            {recentActivityList.slice(0, 5).map((act, idx) => {
+            {recentActivityList && recentActivityList.slice(0, 5).map((act, idx) => {
               const IconComponent = act.type === 'topic' ? CheckCircle : act.type === 'subtopic' ? Zap : Clock3;
               const bgClass = act.type === 'topic' 
                 ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border-green-100/50 dark:border-green-900/10'
@@ -645,8 +664,8 @@ export default function Dashboard() {
                     <IconComponent size={16} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-slate-900 dark:text-white font-bold text-xs truncate">{act.title}</div>
-                    <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">{act.subtitle} • {act.time}</div>
+                    <div className="text-slate-900 dark:text-white font-bold text-xs truncate">{act?.title || 'Study Session'}</div>
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">{act?.subtitle} • {act?.time}</div>
                   </div>
                 </div>
               );
@@ -699,7 +718,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex-1 my-4 space-y-4 overflow-y-auto pr-1 custom-scrollbar">
-            {upcomingTasksList.slice(0, 5).map((task) => {
+            {upcomingTasksList && upcomingTasksList.slice(0, 5).map((task) => {
               const IconComponent = Calendar;
               const isOverdue = task.daysLeft !== undefined && task.daysLeft < 0;
               
@@ -713,9 +732,9 @@ export default function Dashboard() {
                     <IconComponent size={16} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-slate-900 dark:text-white font-bold text-xs truncate">{task.title}</div>
+                    <div className="text-slate-900 dark:text-white font-bold text-xs truncate">{task?.title || 'Upcoming Target'}</div>
                     <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">
-                      {task.subtitle} • {task.date}
+                      {task?.subtitle} • {task?.date}
                     </div>
                   </div>
                 </div>
@@ -774,17 +793,17 @@ export default function Dashboard() {
 
               {/* Chat Messages */}
               <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll bg-slate-50/20 dark:bg-slate-950/10">
-                {chatMessages.map((msg, idx) => (
-                  <div key={idx} className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                {chatMessages && chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex gap-2.5 ${msg?.role === 'user' ? 'flex-row-reverse' : ''}`}>
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      msg.role === 'user' ? 'bg-blue-600 text-white shadow' : 'bg-slate-100 dark:bg-slate-900 border border-[var(--border-color)] text-slate-500 dark:text-slate-400'
+                      msg?.role === 'user' ? 'bg-blue-600 text-white shadow' : 'bg-slate-100 dark:bg-slate-900 border border-[var(--border-color)] text-slate-500 dark:text-slate-400'
                     }`}>
-                      {msg.role === 'user' ? <CheckCircle size={12} /> : <Sparkles size={12} />}
+                      {msg?.role === 'user' ? <CheckCircle size={12} /> : <Sparkles size={12} />}
                     </div>
                     <div className={`max-w-[78%] px-3 py-2 rounded-xl text-xs leading-relaxed ${
-                      msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-[var(--border-color)] rounded-tl-none'
+                      msg?.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-[var(--border-color)] rounded-tl-none'
                     }`}>
-                      {msg.content.split('\n').map((line, i) => (
+                      {msg?.content && msg.content.split('\n').map((line, i) => (
                         <span key={i}>
                           {line}
                           {i < msg.content.split('\n').length - 1 && <br />}
