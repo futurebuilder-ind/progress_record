@@ -5,9 +5,10 @@ import API from '../api/axios';
 import { 
   Zap, TrendingUp, BookOpen, Target, Flame, Clock, Trophy, 
   Brain, Sparkles, Activity, Play, Pause, RotateCcw, ChevronRight, 
-  HelpCircle, FileText, Send, Mic, Volume2, Calendar, CheckCircle, Clock3
+  HelpCircle, FileText, Send, Mic, Volume2, Calendar, CheckCircle, Clock3, X
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const MOCK_ANALYTICS = {
@@ -37,11 +38,43 @@ const WEEKLY_DATA = [
   { day: 'Sun', hours: 2.5 }
 ];
 
+/* ─── precision subject mastery calculator matching Subjects.jsx ─── */
+function calcSubjectMastery(subject) {
+  const topics = subject.topics || [];
+  if (topics.length === 0) return 0;
+  let totalWeight = 0, doneWeight = 0;
+  topics.forEach(t => {
+    const subtopics = t.subtopics || [];
+    if (subtopics.length === 0) {
+      totalWeight++;
+      if (t.completed) doneWeight++;
+    } else {
+      let stTotal = 0, stDone = 0;
+      subtopics.forEach(st => {
+        const tasks = st.tasks || [];
+        if (tasks.length === 0) {
+          stTotal++;
+          if (st.completed) stDone++;
+        } else {
+          stTotal += tasks.length;
+          stDone += tasks.filter(tk => tk.completed).length;
+        }
+      });
+      totalWeight++;
+      doneWeight += stTotal > 0 ? stDone / stTotal : (t.completed ? 1 : 0);
+    }
+  });
+  return totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [analytics, setAnalytics] = useState(MOCK_ANALYTICS);
+  const [subjects, setSubjects] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [quoteIdx] = useState(0);
 
   // Pomodoro timer states
   const [pomoTime, setPomoTime] = useState(25 * 60);
@@ -52,35 +85,38 @@ export default function Dashboard() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState([
-    { role: 'assistant', content: `Hey Aarav! I'm your AI Study Companion. How can I help you accelerate your revision session today?` }
+    { role: 'assistant', content: `Hey ${user?.name?.split(' ')[0] || 'Aarav'}! I'm your AI Study Companion. How can I help you accelerate your revision session today?` }
   ]);
   const [aiTyping, setAiTyping] = useState(false);
   const chatScrollRef = useRef(null);
 
-  const fetchAnalytics = useCallback(async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
-      const { data } = await API.get('/analytics');
-      if (data) {
-        // Merge real data with mockup defaults to keep full visual fidelity
-        setAnalytics(prev => ({
-          ...prev,
-          overallMastery: data.overallMastery || prev.overallMastery,
-          completedTasks: data.completedTasks || prev.completedTasks,
-          totalTasks: data.totalTasks || prev.totalTasks,
-          consistency: data.consistency || prev.consistency,
-          totalFocusSessions: data.totalFocusSessions || prev.totalFocusSessions,
-        }));
+      const [analyticsRes, subjectsRes, goalsRes] = await Promise.all([
+        API.get('/analytics').catch(() => ({ data: MOCK_ANALYTICS })),
+        API.get('/subjects').catch(() => ({ data: { subjects: [] } })),
+        API.get('/goals').catch(() => ({ data: [] }))
+      ]);
+
+      if (analyticsRes.data) {
+        setAnalytics(analyticsRes.data);
+      }
+      if (subjectsRes.data?.subjects) {
+        setSubjects(subjectsRes.data.subjects);
+      }
+      if (goalsRes.data) {
+        setGoals(goalsRes.data);
       }
     } catch (e) {
-      console.warn("Using mock visualization specs.");
+      console.warn("Using default visualization specs due to API fetch issue.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   // Pomodoro Interval ticker
   useEffect(() => {
@@ -159,13 +195,155 @@ export default function Dashboard() {
       <div className="flex h-full items-center justify-center bg-[var(--bg-primary)]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 border-t-2 border-blue-500 rounded-full animate-spin"></div>
-          <span className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Configuring Workspace...</span>
+          <span className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider animate-pulse">Syncing Workspace Telemetry...</span>
         </div>
       </div>
     );
   }
 
-  const mastery = analytics.overallMastery;
+  // ─── Telemetry Analytics Computations from Live MongoDB State ───
+  
+  // 1. Overall Mastery calculation
+  const overallMasteryValue = subjects.length > 0
+    ? Math.round(subjects.reduce((acc, sub) => acc + calcSubjectMastery(sub), 0) / subjects.length)
+    : (analytics?.overallMastery ?? 60);
+
+  // 2. Total Subjects Count
+  const totalSubjectsCount = subjects.length > 0 ? subjects.length : (analytics?.subjectMastery?.length ?? 6);
+
+  // 3. Completed Topics count & task lists
+  let completedTopicsCount = 0;
+  let totalTopicsCount = 0;
+  let upcomingTasksList = [];
+  let recentActivityList = [];
+
+  if (subjects.length > 0) {
+    subjects.forEach(subject => {
+      const topics = subject.topics || [];
+      topics.forEach(t => {
+        totalTopicsCount++;
+        if (t.completed) {
+          completedTopicsCount++;
+          recentActivityList.push({
+            type: 'topic',
+            title: `Completed topic "${t.name}"`,
+            subtitle: subject.name,
+            time: t.deadline ? new Date(t.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Recently',
+            timestamp: t.deadline ? new Date(t.deadline).getTime() : Date.now() - 3600000 * 2,
+          });
+        } else {
+          if (t.deadline) {
+            upcomingTasksList.push({
+              id: t._id,
+              title: t.name,
+              subtitle: subject.name,
+              date: new Date(t.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+              daysLeft: Math.ceil((new Date(t.deadline) - new Date()) / 86400000),
+              completed: false,
+              type: 'calendar'
+            });
+          }
+        }
+
+        // Subtopics checking
+        const subtopics = t.subtopics || [];
+        subtopics.forEach(st => {
+          if (st.completed) {
+            recentActivityList.push({
+              type: 'subtopic',
+              title: `Mastered subtopic "${st.name}"`,
+              subtitle: `${t.name} (${subject.name})`,
+              time: st.deadline ? new Date(st.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Recently',
+              timestamp: st.deadline ? new Date(st.deadline).getTime() : Date.now() - 3600000 * 8,
+            });
+          } else {
+            if (st.deadline) {
+              upcomingTasksList.push({
+                id: st._id,
+                title: st.name,
+                subtitle: t.name,
+                date: new Date(st.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                daysLeft: Math.ceil((new Date(st.deadline) - new Date()) / 86400000),
+                completed: false,
+                type: 'calendar'
+              });
+            }
+          }
+
+          // Inner tasks checking
+          const tasks = st.tasks || [];
+          tasks.forEach(tk => {
+            if (tk.completed) {
+              recentActivityList.push({
+                type: 'task',
+                title: `Completed task "${tk.name}"`,
+                subtitle: `${st.name}`,
+                time: 'Recently',
+                timestamp: Date.now() - 3600000,
+              });
+            }
+          });
+        });
+      });
+    });
+  }
+
+  // Fallback defaults if database has empty subjects list
+  if (totalTopicsCount === 0) {
+    completedTopicsCount = analytics?.completedTasks ?? MOCK_ANALYTICS.completedTasks;
+    totalTopicsCount = analytics?.totalTasks ?? MOCK_ANALYTICS.totalTasks;
+  }
+
+  // Sort activities by timestamp
+  recentActivityList.sort((a, b) => b.timestamp - a.timestamp);
+  if (recentActivityList.length === 0) {
+    recentActivityList = [
+      { type: 'topic', title: 'Completed chapter "Quadratic Equations"', subtitle: 'Mathematics', time: '2h ago' },
+      { type: 'subtopic', title: 'Submitted assignment "Photosynthesis"', subtitle: 'Biology', time: '1d ago' },
+      { type: 'task', title: 'Completed study block', subtitle: 'Physics', time: '1d ago' }
+    ];
+  }
+
+  // Sort upcoming tasks by deadline
+  upcomingTasksList.sort((a, b) => a.daysLeft - b.daysLeft);
+  if (upcomingTasksList.length === 0) {
+    upcomingTasksList = [
+      { id: 'u1', title: 'Physics Revision Mock', subtitle: 'Physics', date: 'May 22, 2024', daysLeft: 2, type: 'calendar' },
+      { id: 'u2', title: 'Chemistry Stoichiometry', subtitle: 'Chemistry', date: 'May 25, 2024', daysLeft: 5, type: 'calendar' },
+      { id: 'u3', title: 'Weekly Goal Sync', subtitle: 'General Study', date: 'May 26, 2024', daysLeft: 6, type: 'calendar' }
+    ];
+  }
+
+  // 4. Study time calculation
+  const weeklyData = analytics?.weeklyData || WEEKLY_DATA;
+  const totalHours = weeklyData.reduce((acc, curr) => acc + (curr.hours || 0), 0);
+  const studyTimeString = `${Math.floor(totalHours)}h ${Math.round((totalHours % 1) * 60)}m`;
+
+  // 5. Goals Achieved
+  const completedGoalsCount = goals.filter(g => g.completed || g.progress === 100).length;
+  const totalGoalsCount = goals.length;
+  const goalsAchievedString = totalGoalsCount > 0 ? `${completedGoalsCount}/${totalGoalsCount}` : `${analytics?.completedGoals || 3}`;
+
+  // 6. Focus Score calculation
+  const consistency = analytics?.consistency ?? MOCK_ANALYTICS.consistency;
+  const focusScore = consistency > 0 ? Math.min(100, 65 + consistency * 5) : 75;
+
+  // 7. Productivity gain index
+  const productivityGainString = consistency > 0 ? `+${Math.min(25, 5 + consistency * 2.5)}%` : `+12%`;
+
+  // 8. Subject Progress bars
+  const activeSubjectMasteries = subjects.length > 0 
+    ? subjects.map((sub, i) => {
+        const colors = ['#3b82f6', '#0d9488', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899'];
+        const bgColors = ['bg-blue-500', 'bg-teal-500', 'bg-purple-500', 'bg-orange-500', 'bg-cyan-500', 'bg-pink-500'];
+        return {
+          name: sub.name,
+          mastery: calcSubjectMastery(sub),
+          color: colors[i % colors.length],
+          bg: bgColors[i % bgColors.length]
+        };
+      })
+    : analytics.subjectMastery;
 
   return (
     <div className="space-y-6 pb-20 relative font-['Outfit'] select-none">
@@ -202,7 +380,6 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 shadow-sm border border-blue-100/50 dark:border-blue-900/10">
               <BookOpen size={18} />
             </div>
-            {/* Sparkline Visual Graph */}
             <div className="h-6 w-16 text-blue-400 dark:text-blue-500/50 flex items-end">
               <svg className="w-full h-full" viewBox="0 0 100 30" fill="none">
                 <path d="M0 25 Q15 5, 30 20 T60 10 T90 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -210,7 +387,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">6</div>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">{totalSubjectsCount}</div>
             <div className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-1.5">Total Subjects</div>
           </div>
         </div>
@@ -221,7 +398,6 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 shadow-sm border border-green-100/50 dark:border-green-900/10">
               <CheckCircle size={18} />
             </div>
-            {/* Sparkline Graph */}
             <div className="h-6 w-16 text-green-400 dark:text-green-500/50 flex items-end">
               <svg className="w-full h-full" viewBox="0 0 100 30" fill="none">
                 <path d="M0 20 Q20 28, 40 10 T80 25 T100 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -229,7 +405,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">{analytics.completedTasks}</div>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">{completedTopicsCount}</div>
             <div className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-1.5">Completed Topics</div>
           </div>
         </div>
@@ -240,7 +416,6 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 shadow-sm border border-purple-100/50 dark:border-purple-900/10">
               <Clock size={18} />
             </div>
-            {/* Sparkline Graph */}
             <div className="h-6 w-16 text-purple-400 dark:text-purple-500/50 flex items-end">
               <svg className="w-full h-full" viewBox="0 0 100 30" fill="none">
                 <path d="M0 15 Q25 2, 50 25 T90 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -248,7 +423,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">36h 45m</div>
+            <div className="text-2xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">{studyTimeString}</div>
             <div className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-2.5">Study Time</div>
           </div>
         </div>
@@ -259,7 +434,6 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 shadow-sm border border-orange-100/50 dark:border-orange-900/10">
               <Target size={18} />
             </div>
-            {/* Sparkline Graph */}
             <div className="h-6 w-16 text-orange-400 dark:text-orange-500/50 flex items-end">
               <svg className="w-full h-full" viewBox="0 0 100 30" fill="none">
                 <path d="M0 28 Q30 5, 60 15 T100 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -267,8 +441,8 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">3</div>
-            <div className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-1.5">Goals Achieved</div>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">{goalsAchievedString}</div>
+            <div className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-1.5">Goal Achieved</div>
           </div>
         </div>
 
@@ -278,7 +452,6 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 shadow-sm border border-teal-100/50 dark:border-teal-900/10">
               <Brain size={18} />
             </div>
-            {/* Sparkline Graph */}
             <div className="h-6 w-16 text-teal-400 dark:text-teal-500/50 flex items-end">
               <svg className="w-full h-full" viewBox="0 0 100 30" fill="none">
                 <path d="M0 10 Q25 25, 50 5 T100 15" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -286,7 +459,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">85/100</div>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">{focusScore}/100</div>
             <div className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-1.5">Daily Focus Score</div>
           </div>
         </div>
@@ -297,7 +470,6 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-100/50 dark:border-rose-900/10">
               <TrendingUp size={18} />
             </div>
-            {/* Sparkline Graph */}
             <div className="h-6 w-16 text-rose-400 dark:text-rose-500/50 flex items-end">
               <svg className="w-full h-full" viewBox="0 0 100 30" fill="none">
                 <path d="M0 25 Q30 8, 60 12 T100 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -305,7 +477,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">+12%</div>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-4 leading-none">{productivityGainString}</div>
             <div className="text-slate-400 dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mt-1.5">Productivity Gain</div>
           </div>
         </div>
@@ -323,7 +495,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 my-2">
-            {/* Minimal High-detail SVG progress ring */}
             <div className="relative w-32 h-32 flex items-center justify-center flex-shrink-0 select-none">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle 
@@ -335,7 +506,7 @@ export default function Dashboard() {
                   cx="50" cy="50" r="42" 
                   stroke="url(#progressGrad)" strokeWidth="6.5" fill="transparent"
                   strokeDasharray={2 * Math.PI * 42}
-                  strokeDashoffset={(2 * Math.PI * 42) * (1 - mastery / 100)}
+                  strokeDashoffset={(2 * Math.PI * 42) * (1 - overallMasteryValue / 100)}
                   strokeLinecap="round"
                 />
                 <defs>
@@ -346,7 +517,7 @@ export default function Dashboard() {
                 </defs>
               </svg>
               <div className="absolute text-center">
-                <div className="text-3xl font-black text-slate-900 dark:text-white leading-none">{mastery}%</div>
+                <div className="text-3xl font-black text-slate-900 dark:text-white leading-none">{overallMasteryValue}%</div>
                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Mastery</div>
               </div>
             </div>
@@ -354,7 +525,7 @@ export default function Dashboard() {
             <div className="flex-1 text-center sm:text-left">
               <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">You're doing great!</h4>
               <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed mt-1">
-                You have completed {mastery}% of your active study mainframe targets this month. Keep accelerating!
+                You have completed {overallMasteryValue}% of your active study targets. Keep accelerating!
               </p>
             </div>
           </div>
@@ -384,36 +555,45 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-4 my-2.5 overflow-y-auto max-h-[220px] pr-1.5 custom-scrollbar">
-            {analytics.subjectMastery.map((s, idx) => (
-              <div key={idx} className="space-y-1.5">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-slate-700 dark:text-slate-300">{s.name}</span>
-                  <span className="text-slate-900 dark:text-white">{s.mastery}%</span>
+            {activeSubjectMasteries.length > 0 ? (
+              activeSubjectMasteries.map((s, idx) => (
+                <div key={idx} className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="text-slate-700 dark:text-slate-300">{s.name}</span>
+                    <span className="text-slate-900 dark:text-white">{s.mastery}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-full overflow-hidden border border-slate-200/20">
+                    <motion.div 
+                      initial={{ width: 0 }} 
+                      animate={{ width: `${s.mastery}%` }}
+                      transition={{ duration: 1, delay: 0.1 * idx }}
+                      className="h-full rounded-full"
+                      style={{ width: `${s.mastery}%`, backgroundColor: s.color || '#3b82f6' }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-900/60 rounded-full overflow-hidden border border-slate-200/20">
-                  <motion.div 
-                    initial={{ width: 0 }} 
-                    animate={{ width: `${s.mastery}%` }}
-                    transition={{ duration: 1, delay: 0.1 * idx }}
-                    className={`h-full rounded-full ${s.bg}`}
-                    style={{ backgroundColor: s.color }}
-                  />
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-slate-400 dark:text-slate-500 text-xs">No active subjects tracked yet.</p>
+                <button onClick={() => navigate('/subjects')} className="mt-3 text-xs text-blue-500 font-bold hover:underline">
+                  Create a Subject +
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
         {/* Right Card: Dynamic Weekly study analytics area chart */}
         <div className="saas-card h-[360px] flex flex-col justify-between relative overflow-hidden">
           <div>
-            <h3 className="text-slate-900 dark:text-white font-bold text-lg leading-tight">Weekly Analytics</h3>
+            <h3 className="text-slate-900 dark:text-white font-bold text-lg leading-tight">Weekly Analysis</h3>
             <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">Focus hours over the last 7 days</p>
           </div>
 
           <div className="h-[210px] w-full mt-4 select-none">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={WEEKLY_DATA} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+              <AreaChart data={weeklyData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="areaHours" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
@@ -450,41 +630,27 @@ export default function Dashboard() {
             <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">Live platform ledger tracking</p>
           </div>
 
-          <div className="flex-1 my-4 space-y-4 overflow-y-auto pr-1">
-            
-            {/* Activity 1 */}
-            <div className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border border-green-100/50 dark:border-green-900/10 flex-shrink-0">
-                <CheckCircle size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-slate-900 dark:text-white font-bold text-xs truncate">Completed chapter "Quadratic Equations"</div>
-                <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">Mathematics • 2h ago</div>
-              </div>
-            </div>
-
-            {/* Activity 2 */}
-            <div className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/10 flex-shrink-0">
-                <FileText size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-slate-900 dark:text-white font-bold text-xs truncate">Submitted assignment "Photosynthesis"</div>
-                <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">Biology • 1d ago</div>
-              </div>
-            </div>
-
-            {/* Activity 3 */}
-            <div className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/10 flex-shrink-0">
-                <Clock3 size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-slate-900 dark:text-white font-bold text-xs truncate">Study session – Physics</div>
-                <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">1h 30m block • 1d ago</div>
-              </div>
-            </div>
-
+          <div className="flex-1 my-4 space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+            {recentActivityList.slice(0, 5).map((act, idx) => {
+              const IconComponent = act.type === 'topic' ? CheckCircle : act.type === 'subtopic' ? Zap : Clock3;
+              const bgClass = act.type === 'topic' 
+                ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border-green-100/50 dark:border-green-900/10'
+                : act.type === 'subtopic'
+                  ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border-purple-100/50 dark:border-purple-900/10'
+                  : 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/10';
+              
+              return (
+                <div key={idx} className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0 ${bgClass}`}>
+                    <IconComponent size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-slate-900 dark:text-white font-bold text-xs truncate">{act.title}</div>
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">{act.subtitle} • {act.time}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -493,12 +659,11 @@ export default function Dashboard() {
           <div>
             <h3 className="text-slate-900 dark:text-white font-bold text-lg leading-tight flex items-center gap-2">
               <Flame size={16} className="text-amber-500 fill-amber-500 animate-pulse" />
-              Focus Heatmap & Timer
+              Focus Mode Timer
             </h3>
             <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">Maximize peak study state blocks</p>
           </div>
 
-          {/* Actual functional Pomodoro clock */}
           <div className="flex flex-col items-center justify-center my-2 relative z-10">
             <div className="text-5xl font-black text-slate-900 dark:text-white font-mono tracking-tight tabular-nums select-none bg-slate-100 dark:bg-slate-900 px-6 py-4 rounded-3xl border border-slate-200/50 dark:border-slate-800/40 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)] relative overflow-hidden">
               {formatPomoTime()}
@@ -533,41 +698,29 @@ export default function Dashboard() {
             <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">Study roadmap & task vectors</p>
           </div>
 
-          <div className="flex-1 my-4 space-y-4 overflow-y-auto pr-1">
-            
-            {/* Task 1 */}
-            <div className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-900/10 flex-shrink-0">
-                <Calendar size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-slate-900 dark:text-white font-bold text-xs truncate">Physics Test</div>
-                <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">May 22, 2024 • 10:00 AM</div>
-              </div>
-            </div>
-
-            {/* Task 2 */}
-            <div className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/10 flex-shrink-0">
-                <FileText size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-slate-900 dark:text-white font-bold text-xs truncate">Chemistry Assignment</div>
-                <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">May 25, 2024 • 11:59 PM</div>
-              </div>
-            </div>
-
-            {/* Task 3 */}
-            <div className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/10 flex-shrink-0">
-                <CheckCircle size={16} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-slate-900 dark:text-white font-bold text-xs truncate">Weekly Goal Review</div>
-                <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">May 26, 2024 • 06:00 PM</div>
-              </div>
-            </div>
-
+          <div className="flex-1 my-4 space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+            {upcomingTasksList.slice(0, 5).map((task) => {
+              const IconComponent = Calendar;
+              const isOverdue = task.daysLeft !== undefined && task.daysLeft < 0;
+              
+              return (
+                <div key={task.id} className="flex items-center gap-3.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0 ${
+                    isOverdue 
+                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-100/50 dark:border-rose-900/10'
+                      : 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-900/10'
+                  }`}>
+                    <IconComponent size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-slate-900 dark:text-white font-bold text-xs truncate">{task.title}</div>
+                    <div className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 font-bold uppercase tracking-wider">
+                      {task.subtitle} • {task.date}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -605,7 +758,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <h4 className="text-slate-900 dark:text-white font-bold text-xs">AI Study Companion</h4>
-                    <p className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 leading-none uppercase font-bold tracking-wider">Knows Aarav's study nodes</p>
+                    <p className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5 leading-none uppercase font-bold tracking-wider">Knows {user?.name?.split(' ')[0] || 'Aarav'}'s study nodes</p>
                   </div>
                 </div>
                 

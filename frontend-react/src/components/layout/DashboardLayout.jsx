@@ -2,25 +2,24 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import API from '../../api/axios';
 import {
   LayoutDashboard, BookOpen, BarChart3, Timer, FileText,
   Target, Trophy, Settings, LogOut, Menu, X, ChevronRight,
   MessageSquare, ShieldCheck, Zap, Sparkles, Search, Bell,
-  Calendar, Sun, Moon, Flame, ChevronDown, ClipboardList, LineChart
+  Calendar, Sun, Moon, Flame, ChevronDown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const navItems = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard'     },
   { to: '/subjects',       icon: BookOpen,        label: 'Subjects'      },
-  { to: '/pomodoro',       icon: Timer,           label: 'Study Plan'    },
+  { to: '/pomodoro',       icon: Timer,           label: 'Focus Mode'    },
   { to: '/analytics',      icon: BarChart3,       label: 'Progress'      },
-  { to: '/goals',          icon: ClipboardList,   label: 'Assignments'   },
-  { to: '/leaderboard',    icon: Trophy,          label: 'Tests'         },
-  { to: '/notes',          icon: FileText,        label: 'Notes'         },
-  { to: '/goals',          icon: Target,          label: 'Goals'         },
-  { to: '/pomodoro',       icon: Calendar,        label: 'Calendar'      },
-  { to: '/feedback',       icon: LineChart,       label: 'Reports'       },
+  { to: '/goals',          icon: Target,          label: 'Goals & Tasks' },
+  { to: '/leaderboard',    icon: Trophy,          label: 'Leaderboard'   },
+  { to: '/notes',          icon: FileText,        label: 'Notes Vault'   },
+  { to: '/feedback',       icon: MessageSquare,   label: 'Feedback'      },
   { to: '/ai-chat',        icon: Sparkles,        label: 'AI Assistant'  },
   { to: '/feedback-admin', icon: ShieldCheck,     label: 'Admin Portal'  },
 ];
@@ -31,7 +30,11 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   
+  // Dynamic study points & streak consistency
+  const [userStats, setUserStats] = useState({ xp: 120, streak: 0 });
+
   // Light / Dark Theme state
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' || !('theme' in localStorage);
@@ -46,6 +49,22 @@ export default function DashboardLayout() {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  // Fetch live stats from the database
+  useEffect(() => {
+    if (user) {
+      API.get('/analytics')
+        .then(({ data }) => {
+          if (data) {
+            setUserStats({
+              xp: (data.completedTasks * 20) + 120,
+              streak: data.consistency || 0
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -215,7 +234,7 @@ export default function DashboardLayout() {
           </div>
 
           {/* Right Side: Date Selector, XP counter, Toggle theme, Avatar */}
-          <div className="flex items-center gap-3 lg:gap-4">
+          <div className="flex items-center gap-3 lg:gap-4 relative">
             
             {/* Date Selector Pill */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -227,9 +246,9 @@ export default function DashboardLayout() {
             {/* XP & Streak Capsule */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/20 text-amber-800 dark:text-amber-300 text-xs font-bold shadow-sm select-none">
               <Flame size={13} className="text-amber-500 fill-amber-500 animate-pulse" />
-              <span>320 XP</span>
+              <span>{userStats.xp} XP</span>
               <span className="text-amber-300 dark:text-amber-700 font-normal">|</span>
-              <span className="flex items-center gap-0.5">5d Streak</span>
+              <span className="flex items-center gap-0.5">{userStats.streak}d Streak</span>
             </div>
 
             {/* Dark Mode Switcher */}
@@ -242,10 +261,49 @@ export default function DashboardLayout() {
             </button>
 
             {/* Notification Bell */}
-            <button className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] text-slate-500 dark:text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all relative cursor-pointer">
+            <button 
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] text-slate-500 dark:text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all relative cursor-pointer"
+            >
               <Bell size={15} />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-950"></span>
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-slate-950 animate-pulse"></span>
             </button>
+
+            {/* Interactive Notification Dropdown */}
+            <AnimatePresence>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 top-12 w-80 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl p-4 z-40"
+                  >
+                    <div className="flex justify-between items-center pb-2 border-b border-[var(--border-color)] mb-3">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Alert Center</span>
+                      <button className="text-[10px] text-blue-500 font-bold hover:underline" onClick={() => setNotifOpen(false)}>Dismiss all</button>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-[var(--border-color)]">
+                        <Flame size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Daily Streak Safe!</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Your study streak is officially secured at {userStats.streak} days.</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-[var(--border-color)]">
+                        <Sparkles size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-xs font-bold text-slate-800 dark:text-slate-200">AI Coaching Available</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Consult the assistant in bottom-right for custom notes.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
 
             {/* User Profile dropdown */}
             <div className="flex items-center gap-2 pl-1 border-l border-[var(--border-color)] cursor-pointer group">
