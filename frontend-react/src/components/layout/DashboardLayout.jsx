@@ -124,8 +124,11 @@ export default function DashboardLayout() {
       <div className={`p-6 border-b border-slate-100 dark:border-white/5 flex items-center ${isCollapsed && !isMobile ? 'justify-center' : 'justify-between'}`}>
         <div className="flex items-center gap-3">
           <div className="w-9 h-10 flex items-center justify-center flex-shrink-0 relative">
+            {/* Logo Glow */}
+            <div className="absolute inset-0 bg-blue-500/30 dark:bg-blue-500/50 blur-xl rounded-full" />
+            
             {/* Custom PR Logo SVG */}
-            <svg viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+            <svg viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full relative z-10 drop-shadow-[0_0_10px_rgba(139,92,246,0.4)]">
               <path d="M12 2L32 12V32L12 42V2Z" fill="url(#paint0_linear)"/>
               <path d="M12 22L22 17V27L12 32V22Z" fill="black" fillOpacity="0.3"/>
               <path d="M12 2L22 7V17L12 12V2Z" fill="white" fillOpacity="0.8"/>
@@ -140,8 +143,8 @@ export default function DashboardLayout() {
           </div>
           {(!isCollapsed || isMobile) && (
             <div className="flex flex-col">
-              <span className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-none mb-1">Progress Record</span>
-              <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] leading-none">Built by Avee Ranjan</span>
+              <span className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight leading-none mb-1 drop-shadow-sm">Progress Record</span>
+              <span className="text-[8px] font-semibold text-blue-600/70 dark:text-blue-400/80 uppercase tracking-[0.2em] leading-none drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]">Built by Avee Ranjan</span>
             </div>
           )}
         </div>
@@ -305,7 +308,7 @@ export default function DashboardLayout() {
                 {notifOpen && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-12 w-80 max-h-96 overflow-y-auto bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-4 z-40 custom-scrollbar">
+                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} style={{ transformOrigin: 'top right' }} className="absolute right-0 top-12 w-80 max-h-96 overflow-y-auto bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-4 z-40 custom-scrollbar">
                       <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5 mb-3">
                         <span className="text-xs font-medium text-slate-800 dark:text-slate-300">Alert Center</span>
                       </div>
@@ -348,7 +351,7 @@ export default function DashboardLayout() {
                 {profileOpen && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setProfileOpen(false)} />
-                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-12 w-56 bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-40">
+                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} style={{ transformOrigin: 'top right' }} className="absolute right-0 top-12 w-56 bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-40">
                       <div className="p-3 border-b border-slate-100 dark:border-white/5 mb-2">
                         <p className="text-[13px] font-medium text-slate-800 dark:text-white truncate">{user?.name}</p>
                         <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
