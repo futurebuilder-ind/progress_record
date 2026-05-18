@@ -159,7 +159,6 @@ export default function DashboardLayout() {
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {navItems.map(({ to, icon: Icon, label }) => {
-          if (label === 'Admin Portal' && user?.role !== 'admin') return null;
           return (
             <NavLink key={to} to={to} onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
@@ -221,7 +220,6 @@ export default function DashboardLayout() {
               <div className="max-h-96 overflow-y-auto p-2">
                 {searchResults.length > 0 ? (
                   searchResults.map(item => {
-                    if (item.label === 'Admin Portal' && user?.role !== 'admin') return null;
                     return (
                       <button key={item.to} onClick={() => { navigate(item.to); setSearchOpen(false); }} className="w-full flex items-center px-4 py-3 gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors">
                         <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center"><item.icon size={16} /></div>
