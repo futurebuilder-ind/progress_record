@@ -15,6 +15,7 @@ import Analytics from './pages/Analytics';
 import Feedback from './pages/Feedback';
 import FeedbackDashboard from './pages/FeedbackDashboard';
 import AIChat from './pages/AIChat';
+import Monetization from './pages/Monetization';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -64,6 +65,7 @@ function App() {
             <Route path="feedback"   element={<Feedback   />} />
             <Route path="feedback-admin" element={<FeedbackDashboard />} />
             <Route path="ai-chat"   element={<AIChat />} />
+            <Route path="monetization" element={<Monetization />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
