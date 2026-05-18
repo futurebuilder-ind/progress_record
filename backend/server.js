@@ -1053,9 +1053,10 @@ app.post("/ai/chat", auth, async (req, res) => {
 
     // Check if Gemini is configured. If yes, use real Gemini
     if (geminiAI) {
-      const subjectsStr = subjectList.map(s => `${s.name}: ${s.done}/${s.total} done (${s.pct}%)`).join('; ');
-      const goalsStr = activeGoals.join('; ');
-      const systemPrompt = `You are an intelligent AI study assistant inside "Progress Record" — a productivity app for students. You speak naturally, are encouraging but honest, and give actionable advice.
+      try {
+        const subjectsStr = subjectList.map(s => `${s.name}: ${s.done}/${s.total} done (${s.pct}%)`).join('; ');
+        const goalsStr = activeGoals.join('; ');
+        const systemPrompt = `You are an intelligent AI study assistant inside "Progress Record" — a productivity app for students. You speak naturally, are encouraging but honest, and give actionable advice.
 
 USER CONTEXT:
 - Name: ${name}
@@ -1072,19 +1073,23 @@ RULES:
 - Use the user's name sometimes
 - If asked about something outside study/productivity, politely redirect`;
 
-      const model = geminiAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const chatHistory = (history || []).slice(-10).map(h => ({
-        role: h.role === 'user' ? 'user' : 'model',
-        parts: [{ text: h.content }]
-      }));
+        const model = geminiAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const chatHistory = (history || []).slice(-10).map(h => ({
+          role: h.role === 'user' ? 'user' : 'model',
+          parts: [{ text: h.content }]
+        }));
 
-      const chat = model.startChat({
-        history: chatHistory,
-        systemInstruction: systemPrompt,
-      });
+        const chat = model.startChat({
+          history: chatHistory,
+          systemInstruction: systemPrompt,
+        });
 
-      const result = await chat.sendMessage(message);
-      return res.json({ reply: result.response.text() });
+        const result = await chat.sendMessage(message);
+        return res.json({ reply: result.response.text() });
+      } catch (geminiError) {
+        console.error("⚠️ Gemini API Error (Falling back to local engine):", geminiError.message);
+        // Do not crash; fall through to the local smart engine below!
+      }
     }
 
     // --- SMART LOCAL AI FALLBACK ENGINE (Runs instantly without API Key) ---
