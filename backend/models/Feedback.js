@@ -8,6 +8,9 @@ const FeedbackSchema = new mongoose.Schema({
   rating:     { type: Number, min: 1, max: 5, default: 5 },
   likedMost:  [{ type: String }],
   recommend:  { type: String, enum: ['Yes', 'No'], default: 'Yes' },
+  adminReply: { type: String },
+  repliedAt:  { type: Date },
+  read:       { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Feedback', FeedbackSchema);

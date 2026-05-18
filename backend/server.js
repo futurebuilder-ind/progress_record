@@ -573,6 +573,51 @@ app.delete("/feedback/:id", async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+/* Reply to feedback (admin) */
+app.post("/feedback/:id/reply", async (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== 'avee123@' && adminKey !== process.env.ADMIN_KEY) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const { reply } = req.body;
+    if (!reply?.trim()) return res.status(400).json({ message: "Reply message required" });
+    
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) return res.status(404).json({ message: "Feedback not found" });
+    
+    feedback.adminReply = reply.trim();
+    feedback.repliedAt = new Date();
+    feedback.read = false; // Mark as unread for the user
+    await feedback.save();
+    
+    res.json({ feedback });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* ════════════════════════════════
+   NOTIFICATIONS
+════════════════════════════════ */
+app.get("/notifications", auth, async (req, res) => {
+  try {
+    const notifications = await Feedback.find({ 
+      userId: req.user.id, 
+      adminReply: { $exists: true, $ne: null } 
+    }).sort({ repliedAt: -1 }).lean();
+    res.json({ notifications });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+app.patch("/notifications/read", auth, async (req, res) => {
+  try {
+    await Feedback.updateMany(
+      { userId: req.user.id, adminReply: { $exists: true }, read: false },
+      { $set: { read: true } }
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 /* Admin Stats Route */
 app.get("/admin/stats", async (req, res) => {
   try {

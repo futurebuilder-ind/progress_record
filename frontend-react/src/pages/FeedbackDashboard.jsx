@@ -14,6 +14,10 @@ export default function FeedbackDashboard() {
   const [authenticated, setAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('users');
 
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replying, setReplying] = useState(false);
+
   const fetchDashboardData = async (key) => {
     setLoading(true);
     setError(null);
@@ -52,6 +56,22 @@ export default function FeedbackDashboard() {
       toast.success('Entry eradicated.');
     } catch {
       toast.error('Failed to eradicate entry.');
+    }
+  };
+
+  const handleReply = async (id) => {
+    if (!replyText.trim()) return toast.error('Enter a reply message.');
+    setReplying(true);
+    try {
+      const { data } = await API.post(`/feedback/${id}/reply`, { reply: replyText }, { headers: { 'x-admin-key': adminKey } });
+      setFeedbacks(prev => prev.map(f => f._id === id ? data.feedback : f));
+      setReplyingTo(null);
+      setReplyText('');
+      toast.success('Reply sent successfully.');
+    } catch {
+      toast.error('Failed to send reply.');
+    } finally {
+      setReplying(false);
     }
   };
 
@@ -277,9 +297,37 @@ export default function FeedbackDashboard() {
                       <p className="text-slate-300 text-sm leading-relaxed mb-6 font-light">"{fb.message}"</p>
                     </div>
 
-                    <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase border-t border-white/5 pt-4">
-                      {formatDate(fb.createdAt)}
+                    <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase border-t border-white/5 pt-4 flex justify-between items-center mt-4">
+                      <span>{formatDate(fb.createdAt)}</span>
+                      {!fb.adminReply && replyingTo !== fb._id && (
+                        <button onClick={() => setReplyingTo(fb._id)} className="text-blue-500 hover:text-blue-400 font-bold transition-colors">Reply</button>
+                      )}
                     </div>
+                    
+                    {fb.adminReply && (
+                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                        <p className="text-xs font-bold text-blue-400 mb-1 flex items-center gap-1"><ShieldCheck size={12}/> Admin Reply</p>
+                        <p className="text-xs text-slate-300 italic">"{fb.adminReply}"</p>
+                      </div>
+                    )}
+
+                    {replyingTo === fb._id && (
+                      <div className="mt-4 space-y-2">
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Type your reply to the user..."
+                          className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl p-3 text-xs text-white focus:border-blue-500 outline-none resize-none h-20"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={() => { setReplyingTo(null); setReplyText(''); }} className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:bg-white/5 transition-colors">Cancel</button>
+                          <button onClick={() => handleReply(fb._id)} disabled={replying} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                            {replying ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : null}
+                            Send Reply
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>
