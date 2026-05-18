@@ -55,9 +55,20 @@ export default function Feedback() {
     e.preventDefault();
     if (!message.trim()) { toast.error('Message is required'); return; }
     setLoading(true);
+    
+    // Map string values to numeric ratings for the backend schema
+    const ratingMap = {
+      'Excellent': 5,
+      'Good': 4,
+      'Average': 3,
+      'Poor': 2,
+      'Very Poor': 1
+    };
+    const numericRating = ratingMap[rating] || 5;
+
     try {
       await API.post('/feedback', { 
-        rating, 
+        rating: numericRating, 
         message: message.trim(),
         likedMost,
         recommend
