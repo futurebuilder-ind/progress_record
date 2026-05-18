@@ -30,8 +30,8 @@ export default function Monetization() {
   // Settings State
   const [settings, setSettings] = useState({
     provider: 'carbon', // carbon, adsense, custom, none
-    adSenseId: '',
-    adSlotId: '',
+    adSenseId: 'ca-pub-6865043298252927',
+    adSlotId: '9876543210',
     customName: 'Developer BootCamp Sponsor',
     customImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=300&auto=format&fit=crop',
     customLink: 'https://github.com/aveeranjan',
