@@ -5,12 +5,14 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const nodemailer = require("nodemailer");
 
 const User     = require("./models/User");
 const Goal     = require("./models/Goal");
 const Session  = require("./models/Session");
 const Feedback = require("./models/Feedback");
 const Note     = require("./models/Note");
+const Otp      = require("./models/Otp");
 
 const app = express();
 
@@ -80,6 +82,109 @@ app.post("/auth/login", async (req, res) => {
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || "progress_secret_key", { expiresIn: "30d" });
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, examType: user.exam, profilePic: user.profilePic || '' } });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// Verification email sender helper
+const sendVerificationEmail = async (email, code) => {
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  console.log(`\x1b[36m[OTP SERVICE] Generated Reset OTP for ${email}: ${code}\x1b[0m`);
+
+  if (!smtpUser || !smtpPass) {
+    console.warn(`\x1b[33m[OTP SERVICE] SMTP_USER or SMTP_PASS not set. Falling back to local console logs.\x1b[0m`);
+    return { success: true, devMode: true };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    });
+
+    const mailOptions = {
+      from: `"Progress Record" <${smtpUser}>`,
+      to: email,
+      subject: "🔒 Reset Your Progress Record Mainframe Password",
+      html: `
+        <div style="font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f3f4f6; padding: 40px; border-radius: 16px; max-width: 500px; margin: auto; border: 1px solid rgba(255,255,255,0.08);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="font-size: 22px; font-weight: 800; margin-top: 15px; color: white; letter-spacing: -0.5px;">Mainframe Password Reset</h2>
+          </div>
+          <p style="font-size: 14px; color: #9ca3af; line-height: 1.6; text-align: center;">Use the secure verification code below to reset your mainframe password. This code will expire in 10 minutes.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #3b82f6; background: rgba(59,130,246,0.1); padding: 12px 24px; border-radius: 12px; border: 1px dashed rgba(59,130,246,0.3); display: inline-block; font-family: monospace;">${code}</span>
+          </div>
+          <p style="font-size: 11px; color: #6b7280; text-align: center;">If you did not request this password reset, you can safely ignore this email.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true, devMode: false };
+  } catch (error) {
+    console.error(`\x1b[31m[OTP SERVICE] Failed to send email via SMTP: ${error.message}\x1b[0m`);
+    return { success: true, devMode: true };
+  }
+};
+
+/* FORGOT PASSWORD REQUEST */
+app.post("/auth/forgot-request", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email?.trim()) return res.status(400).json({ message: "Gmail address required" });
+    const emailStr = email.trim().toLowerCase();
+    
+    // Check if user exists
+    const user = await User.findOne({ email: emailStr });
+    if (!user) return res.status(404).json({ message: "No registered operator found with this Gmail address" });
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save to Otp model
+    await Otp.findOneAndUpdate(
+      { email: emailStr },
+      { code, createdAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    // Send email
+    const emailStatus = await sendVerificationEmail(emailStr, code);
+    res.json({ message: "Verification code sent successfully", devMode: emailStatus.devMode });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+/* RESET PASSWORD APPLY */
+app.post("/auth/reset-password", async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email?.trim() || !code || !newPassword) {
+      return res.status(400).json({ message: "Gmail, verification code and new password are required" });
+    }
+    const emailStr = email.trim().toLowerCase();
+
+    // Verify OTP
+    const otpRecord = await Otp.findOne({ email: emailStr, code });
+    if (!otpRecord) return res.status(400).json({ message: "Invalid or expired verification code" });
+
+    // Find User
+    const user = await User.findOne({ email: emailStr });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Update Password
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+
+    // Delete OTP
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    res.json({ success: true, message: "Mainframe credentials updated successfully" });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 

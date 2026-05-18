@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
+import API from '../api/axios';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,15 @@ export default function Login() {
   const [typedText, setTypedText] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Reset Password states
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetStep, setResetStep] = useState('request'); // 'request' or 'verify'
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [devMode, setDevMode] = useState(false);
+  const [resendTimer, setResendTimer] = useState(60);
 
   const welcomeText = "Initialize your progress.";
 
@@ -29,6 +39,85 @@ export default function Login() {
     return () => clearInterval(typingInterval);
   }, []);
 
+  // OTP Resend Timer
+  useEffect(() => {
+    let timer = null;
+    if (forgotMode && resetStep === 'verify' && resendTimer > 0) {
+      timer = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [forgotMode, resetStep, resendTimer]);
+
+  const handleOtpChange = (val, idx) => {
+    if (val && isNaN(val)) return;
+    const newOtp = [...otp];
+    newOtp[idx] = val;
+    setOtp(newOtp);
+
+    if (val !== '' && idx < 5) {
+      const nextInput = document.getElementById(`otp-${idx + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e, idx) => {
+    if (e.key === 'Backspace' && otp[idx] === '' && idx > 0) {
+      const prevInput = document.getElementById(`otp-${idx - 1}`);
+      if (prevInput) {
+        prevInput.focus();
+      }
+    }
+  };
+
+  const handleRequestReset = async (e) => {
+    if (e) e.preventDefault();
+    if (!email.trim()) { toast.error('Gmail address required.'); return; }
+    if (!email.trim().toLowerCase().endsWith('@gmail.com')) {
+      toast.error('Password reset is only supported for legitimate Gmail (@gmail.com) addresses.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await API.post('/auth/forgot-request', { email: email.trim().toLowerCase() });
+      setDevMode(data.devMode);
+      setResetStep('verify');
+      setResendTimer(60);
+      setOtp(['', '', '', '', '', '']);
+      toast.success('Verification code requested. Check your Gmail.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to request reset code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyReset = async (e) => {
+    e.preventDefault();
+    const codeStr = otp.join('');
+    if (codeStr.length < 6) { toast.error('Please enter the full 6-digit code.'); return; }
+    if (!newPassword || newPassword.length < 6) { toast.error('New password must be at least 6 characters.'); return; }
+    setLoading(true);
+    try {
+      await API.post('/auth/reset-password', {
+        email: email.trim().toLowerCase(),
+        code: codeStr,
+        newPassword
+      });
+      toast.success('Password updated successfully. Logging in...');
+      
+      // Auto login direct UX
+      await login(email.trim().toLowerCase(), newPassword);
+      toast.success('Clearance granted. Welcome back.');
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Verification failed. Incorrect code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -37,7 +126,27 @@ export default function Login() {
       toast.success('Authentication successful. Welcome back.');
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Authentication failed. Access denied.');
+      const msg = err.response?.data?.message || 'Authentication failed. Access denied.';
+      if (msg.toLowerCase().includes('password')) {
+        toast((t) => (
+          <div className="flex flex-col gap-1.5 text-xs select-none">
+            <span className="font-bold text-red-500 flex items-center gap-1">❌ Authentication Failed</span>
+            <span className="text-slate-400">Incorrect password. Would you like to reset it via Gmail OTP?</span>
+            <button 
+              onClick={() => {
+                toast.dismiss(t.id);
+                setForgotMode(true);
+                setResetStep('request');
+              }}
+              className="text-left text-blue-500 font-bold hover:underline cursor-pointer uppercase tracking-wider text-[10px] mt-1 bg-transparent border-0"
+            >
+              Reset Credentials via Gmail OTP
+            </button>
+          </div>
+        ), { duration: 7000 });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -124,65 +233,222 @@ export default function Login() {
           </div>
 
           <div className="saas-card p-8 sm:p-10 relative overflow-hidden bg-[var(--bg-card)]">
-            <div className="mb-6">
-              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Access Portal</h2>
-              <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Verify your credentials to enter the workspace.</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="engineer@domain.com"
-                  required
-                  className="saas-input"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5 relative">
-                <div className="flex justify-between items-center ml-1">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Password</label>
-                  <a href="#" className="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest">Forgot?</a>
+            
+            {!forgotMode ? (
+              <>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Access Portal</h2>
+                  <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Verify your credentials to enter the workspace.</p>
                 </div>
-                <div className="relative w-full">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    required
-                    className="saas-input w-full pr-10"
-                  />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer">
-                    {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="engineer@domain.com"
+                      required
+                      className="saas-input"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 relative">
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Password</label>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setForgotMode(true);
+                          setResetStep('request');
+                        }} 
+                        className="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest bg-transparent border-0 cursor-pointer"
+                      >
+                        Forgot?
+                      </button>
+                    </div>
+                    <div className="relative w-full">
+                      <input
+                        type={showPass ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        required
+                        className="saas-input w-full pr-10"
+                      />
+                      <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer bg-transparent border-0">
+                        {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full saas-btn-primary py-3 flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <><span>Authorize Workspace</span> <ArrowRight size={15} /></>
+                    )}
                   </button>
+                </form>
+
+                <div className="mt-6 text-center border-t border-[var(--border-color)] pt-5">
+                  <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">
+                    No active clearance?{' '}
+                    <Link to="/signup" className="text-blue-500 hover:text-blue-600 transition-colors font-bold underline underline-offset-4 ml-1">
+                      Request access
+                    </Link>
+                  </p>
                 </div>
-              </div>
+              </>
+            ) : (
+              <>
+                {resetStep === 'request' ? (
+                  <>
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <button 
+                          onClick={() => setForgotMode(false)}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer bg-transparent border-0"
+                        >
+                          <ArrowLeft size={16} />
+                        </button>
+                        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Reset Mainframe Key</h2>
+                      </div>
+                      <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Provide your registered Gmail to request a temporary session override key.</p>
+                    </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full saas-btn-primary py-3 flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <form onSubmit={handleRequestReset} className="space-y-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Gmail Address</label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          placeholder="operator@gmail.com"
+                          required
+                          className="saas-input"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full saas-btn-primary py-3 flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-50"
+                      >
+                        {loading ? (
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                          <><span>Request Verification Code</span> <ArrowRight size={15} /></>
+                        )}
+                      </button>
+                    </form>
+
+                    <button 
+                      onClick={() => setForgotMode(false)}
+                      className="w-full mt-4 text-center text-slate-400 dark:text-slate-500 text-xs hover:text-blue-500 dark:hover:text-blue-400 font-medium cursor-pointer transition-colors bg-transparent border-0"
+                    >
+                      Return to secure login
+                    </button>
+                  </>
                 ) : (
-                  <><span>Authorize Workspace</span> <ArrowRight size={15} /></>
-                )}
-              </button>
-            </form>
+                  <>
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <button 
+                          onClick={() => setResetStep('request')}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer bg-transparent border-0"
+                        >
+                          <ArrowLeft size={16} />
+                        </button>
+                        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Mainframe Clearance</h2>
+                      </div>
+                      <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">
+                        Enter the 6-digit key dispatched to <span className="font-bold text-slate-700 dark:text-slate-300">{email}</span>.
+                      </p>
+                    </div>
 
-            <div className="mt-6 text-center border-t border-[var(--border-color)] pt-5">
-              <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">
-                No active clearance?{' '}
-                <Link to="/signup" className="text-blue-500 hover:text-blue-600 transition-colors font-bold underline underline-offset-4 ml-1">
-                  Request access
-                </Link>
-              </p>
-            </div>
+                    <form onSubmit={handleVerifyReset} className="space-y-4">
+                      {/* OTP Inputs */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1 text-center mb-1">Clearance Key</label>
+                        <div className="flex justify-center gap-2 sm:gap-2.5">
+                          {otp.map((digit, idx) => (
+                            <input
+                              key={idx}
+                              id={`otp-${idx}`}
+                              type="text"
+                              maxLength={1}
+                              value={digit}
+                              onChange={e => handleOtpChange(e.target.value, idx)}
+                              onKeyDown={e => handleOtpKeyDown(e, idx)}
+                              className="w-10 h-12 sm:w-11 sm:h-12 text-center text-lg font-extrabold rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-sm animate-pulse"
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* New Password input */}
+                      <div className="flex flex-col gap-1.5 relative">
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">New Password</label>
+                        <div className="relative w-full">
+                          <input
+                            type={showNewPass ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            placeholder="••••••••••••"
+                            required
+                            className="saas-input w-full pr-10"
+                          />
+                          <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer bg-transparent border-0">
+                            {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full saas-btn-primary py-3 flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:opacity-50"
+                      >
+                        {loading ? (
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                          <><ShieldCheck size={16} /> <span>Override Credentials</span></>
+                        )}
+                      </button>
+                    </form>
+
+                    <div className="mt-5 text-center flex flex-col items-center justify-center gap-2">
+                      <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                        {resendTimer > 0 ? (
+                          <span>Resend available in <strong className="text-blue-500">{resendTimer}s</strong></span>
+                        ) : (
+                          <button 
+                            onClick={handleRequestReset}
+                            className="inline-flex items-center gap-1 text-blue-500 hover:text-blue-600 transition-colors font-bold uppercase tracking-wider text-[10px] bg-transparent border-0 cursor-pointer"
+                          >
+                            <RefreshCw size={10} /> Request New Key
+                          </button>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Developer Dev Mode Indicator */}
+                    {devMode && (
+                      <div className="mt-4 p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold text-center uppercase tracking-widest animate-pulse">
+                        ⚡ Dev Mode: Key sent to server console logs
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
           </div>
 
           {/* Mobile Creator Badge */}
